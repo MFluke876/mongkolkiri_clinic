@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Thai Clinic Design System - Pink Theme */
+
+@layer base {
+  :root {
+    /* Pink Theme Palette */
+    --background: 350 30% 97%;
+    --foreground: 350 30% 15%;
+
+    --card: 350 25% 99%;
+    --card-foreground: 350 30% 15%;
+
+    --popover: 350 25% 99%;
+    --popover-foreground: 350 30% 15%;
+
+    /* Pink Primary */
+    --primary: 340 65% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Light Pink Secondary */
+    --secondary: 350 40% 94%;
+    --secondary-foreground: 350 30% 25%;
+
+    /* Soft Muted */
+    --muted: 350 20% 94%;
+    --muted-foreground: 350 15% 45%;
+
+    /* Rose Accent */
+    --accent: 330 60% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 350 20% 88%;
+    --input: 350 20% 90%;
+    --ring: 340 65% 55%;
+
+    --radius: 0.75rem;
+
+    /* Custom Colors */
+    --sage: 340 65% 55%;
+    --sage-light: 350 40% 94%;
+    --sage-dark: 340 65% 40%;
+    --earth: 330 50% 40%;
+    --earth-light: 350 35% 90%;
+    --cream: 350 30% 97%;
+    --cream-dark: 350 25% 92%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --success: 160 50% 40%;
+    --success-foreground: 0 0% 100%;
+
+    /* Sidebar */
+    --sidebar-background: 340 65% 40%;
+    --sidebar-foreground: 350 30% 98%;
+    --sidebar-primary: 350 30% 98%;
+    --sidebar-primary-foreground: 340 65% 40%;
+    --sidebar-accent: 340 50% 50%;
+    --sidebar-accent-foreground: 350 30% 98%;
+    --sidebar-border: 340 50% 30%;
+    --sidebar-ring: 340 65% 60%;
+  }
+
+  .dark {
+    --background: 350 20% 10%;
+    --foreground: 350 20% 95%;
+
+    --card: 350 15% 12%;
+    --card-foreground: 350 20% 95%;
+
+    --popover: 350 15% 12%;
+    --popover-foreground: 350 20% 95%;
+
+    --primary: 340 60% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 350 15% 18%;
+    --secondary-foreground: 350 20% 90%;
+
+    --muted: 350 10% 20%;
+    --muted-foreground: 350 15% 60%;
+
+    --accent: 330 55% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 350 10% 20%;
+    --input: 350 10% 22%;
+    --ring: 340 60% 55%;
+
+    --sidebar-background: 350 20% 8%;
+    --sidebar-foreground: 350 20% 95%;
+    --sidebar-primary: 340 60% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 350 15% 15%;
+    --sidebar-accent-foreground: 350 20% 95%;
+    --sidebar-border: 350 10% 15%;
+    --sidebar-ring: 340 60% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Sarabun', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Prompt', sans-serif;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-lg;
+  }
+  
+  .status-badge {
+    @apply px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  .status-in-queue {
+    @apply bg-warning/20 text-warning border border-warning/30;
+  }
+  
+  .status-waiting {
+    @apply bg-sage-light text-sage-dark border border-sage/30;
+  }
+  
+  .status-completed {
+    @apply bg-success/20 text-success border border-success/30;
+  }
+  
+  .allergy-alert {
+    @apply bg-destructive/10 border border-destructive/30 text-destructive rounded-lg p-3;
+  }
+}
