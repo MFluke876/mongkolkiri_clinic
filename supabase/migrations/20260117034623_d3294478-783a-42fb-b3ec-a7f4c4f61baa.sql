@@ -1,8 +1,3 @@
--- 1. เพิ่ม role doctor ให้กับ user ปัจจุบัน
-INSERT INTO user_roles (user_id, role) 
-VALUES ('4331a8bc-7de8-408c-926a-a301b2303f52', 'doctor')
-ON CONFLICT (user_id, role) DO NOTHING;
-
 -- 2. สร้าง function สำหรับกำหนด role อัตโนมัติ
 CREATE OR REPLACE FUNCTION public.handle_new_staff_user()
 RETURNS trigger
