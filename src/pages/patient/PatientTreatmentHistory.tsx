@@ -1,6 +1,6 @@
 import { usePatientAccount } from "@/hooks/usePatientAccount";
 import { usePatientDiagnoses } from "@/hooks/usePatientDiagnoses";
-import { usePatientTreatmentPlansNew, getStepInfo } from "@/hooks/usePatientTreatmentPlansNew";
+import { usePatientTreatmentPlans, getStepInfo } from "@/hooks/usePatientTreatmentPlans";
 import { usePatientConsultations } from "@/hooks/usePatientConsultations";
 import { useProcedureOrders } from "@/hooks/useProcedureOrders";
 import PatientLayout from "@/components/layout/PatientLayout";
@@ -17,7 +17,7 @@ const PatientTreatmentHistory = () => {
   const patientId = patientAccount?.patient_id || "";
   
   const { data: diagnoses, isLoading: diagnosesLoading } = usePatientDiagnoses(patientId);
-  const { data: treatmentPlans, isLoading: plansLoading } = usePatientTreatmentPlansNew(patientId);
+  const { data: treatmentPlans, isLoading: plansLoading } = usePatientTreatmentPlans(patientId);
   const { data: consultations, isLoading: consultationsLoading } = usePatientConsultations(patientId);
   const { data: procedures, isLoading: proceduresLoading } = useProcedureOrders(patientId);
 

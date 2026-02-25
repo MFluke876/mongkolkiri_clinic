@@ -29,9 +29,9 @@ import {
 } from 'lucide-react';
 import { differenceInYears, format } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { usePatientDiagnoses, useCreatePatientDiagnosis } from '@/hooks/usePatientDiagnoses';
-import { usePatientConsultations, useCreatePatientConsultation } from '@/hooks/usePatientConsultations';
-import { usePatientTreatmentPlansNew, useCreatePatientTreatmentPlan, TREATMENT_STEPS, getStepInfo } from '@/hooks/usePatientTreatmentPlansNew';
+import { usePatientDiagnoses, useCreatePatientDiagnosis, useDeletePatientDiagnosis } from '@/hooks/usePatientDiagnoses';
+import { usePatientConsultations, useCreatePatientConsultation, useDeletePatientConsultation } from '@/hooks/usePatientConsultations';
+import { usePatientTreatmentPlans, useCreatePatientTreatmentPlan, useDeletePatientTreatmentPlan, TREATMENT_STEPS, getStepInfo } from '@/hooks/usePatientTreatmentPlans';
 import { useMedicines } from '@/hooks/useMedicines';
 import { useCreatePrescription, useDeletePrescription } from '@/hooks/usePrescriptions';
 import { useProcedureOrders, useCreateProcedureOrder, useDeleteProcedureOrder } from '@/hooks/useProcedureOrders';
@@ -151,10 +151,12 @@ const PatientDetail = () => {
   // Fetch patient diagnoses from new standalone table
   const { data: patientDiagnoses = [], isLoading: diagnosesLoading } = usePatientDiagnoses(patientId || '');
   const createDiagnosis = useCreatePatientDiagnosis();
+  const deleteDiagnosis = useDeletePatientDiagnosis();
 
   // Fetch patient consultations
   const { data: patientConsultations = [], isLoading: consultationsLoading } = usePatientConsultations(patientId || '');
   const createConsultation = useCreatePatientConsultation();
+  const deleteConsultation = useDeletePatientConsultation();
 
   // Medicines & prescriptions
   const { data: medicines = [] } = useMedicines();
@@ -162,8 +164,9 @@ const PatientDetail = () => {
   const deletePrescription = useDeletePrescription();
 
   // Fetch patient treatment plans (new table)
-  const { data: patientTreatmentPlans = [], isLoading: treatmentPlansLoading } = usePatientTreatmentPlansNew(patientId || '');
+  const { data: patientTreatmentPlans = [], isLoading: treatmentPlansLoading } = usePatientTreatmentPlans(patientId || '');
   const createTreatmentPlan = useCreatePatientTreatmentPlan();
+  const deleteTreatmentPlan = useDeletePatientTreatmentPlan();
 
   // Fetch procedure orders
   const { data: procedureOrders = [], isLoading: proceduresLoading } = useProcedureOrders(patientId);
@@ -192,6 +195,10 @@ const PatientDetail = () => {
       notes: ''
     });
     setDiagnosisDialogOpen(false);
+  };
+  const handleDeleteDiagnosis = async (diagnosisId: string) => {
+    if (!patientId) return;
+    await deleteDiagnosis.mutateAsync({ id: diagnosisId, patientId });
   };
 
   const handleAddConsultation = async () => {
@@ -233,6 +240,12 @@ const PatientDetail = () => {
     setConsultationDialogOpen(false);
   };
 
+  const handleDeleteConsultation = async (consultationId: string) => {
+    if (!patientId) return;
+    await deleteConsultation.mutateAsync({ id: consultationId, patientId });
+  };
+
+
   const handleAddTreatmentPlan = async () => {
     if (!patientId || !newTreatmentPlan.step_details.trim()) return;
     
@@ -257,6 +270,12 @@ const PatientDetail = () => {
     });
     setTreatmentPlanDialogOpen(false);
   };
+
+ const handleDeleteTreatmentPlan = async (planId: string) => {
+    if (!patientId) return;
+    await deleteTreatmentPlan.mutateAsync({ id: planId, patientId });
+  };
+
 
   const handleAddPrescription = async () => {
     if (!patientId || !newPrescription.medicine_id || newPrescription.quantity < 1) return;
@@ -492,49 +511,85 @@ const PatientDetail = () => {
                 ) : (
                   <div className="space-y-3">
                     {patientConsultations.map((consultation) => (
-                      <div key={consultation.id} className="p-4 rounded-lg border bg-card">
-                        <div className="flex items-center justify-between mb-2">
+                      <div
+                        key={consultation.id}
+                        className="p-4 rounded-lg border bg-card flex items-center justify-between"
+                      >
+                        {/* LEFT CONTENT */}
+                        <div className="space-y-2">
+                          
                           <Badge variant="outline">
                             {format(new Date(consultation.consultation_date), 'd MMM yyyy', { locale: th })}
                           </Badge>
-                        </div>
-                        <div className="space-y-2">
+
                           <div>
-                            <span className="text-sm font-medium text-muted-foreground">อาการหลัก: </span>
+                            <span className="text-sm font-medium text-muted-foreground">
+                              อาการหลัก:
+                            </span>{" "}
                             <span className="text-sm">{consultation.chief_complaint}</span>
                           </div>
-                          {consultation.vital_signs && Object.keys(consultation.vital_signs).length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {consultation.vital_signs.blood_pressure && (
-                                <Badge variant="secondary" className="text-xs">BP: {String(consultation.vital_signs.blood_pressure)}</Badge>
-                              )}
-                              {consultation.vital_signs.heart_rate && (
-                                <Badge variant="secondary" className="text-xs">HR: {String(consultation.vital_signs.heart_rate)}</Badge>
-                              )}
-                              {consultation.vital_signs.temperature && (
-                                <Badge variant="secondary" className="text-xs">Temp: {String(consultation.vital_signs.temperature)}°C</Badge>
-                              )}
-                              {consultation.vital_signs.respiratory_rate && (
-                                <Badge variant="secondary" className="text-xs">RR: {String(consultation.vital_signs.respiratory_rate)}</Badge>
-                              )}
-                              {consultation.vital_signs.weight && (
-                                <Badge variant="secondary" className="text-xs">น้ำหนัก: {String(consultation.vital_signs.weight)} kg</Badge>
-                              )}
-                            </div>
-                          )}
+
+                          {consultation.vital_signs &&
+                            Object.keys(consultation.vital_signs).length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {consultation.vital_signs.blood_pressure && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    BP: {String(consultation.vital_signs.blood_pressure)}
+                                  </Badge>
+                                )}
+                                {consultation.vital_signs.heart_rate && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    HR: {String(consultation.vital_signs.heart_rate)}
+                                  </Badge>
+                                )}
+                                {consultation.vital_signs.temperature && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Temp: {String(consultation.vital_signs.temperature)}°C
+                                  </Badge>
+                                )}
+                                {consultation.vital_signs.respiratory_rate && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    RR: {String(consultation.vital_signs.respiratory_rate)}
+                                  </Badge>
+                                )}
+                                {consultation.vital_signs.weight && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    น้ำหนัก: {String(consultation.vital_signs.weight)} kg
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+
                           {consultation.physical_exam_note && (
                             <div>
-                              <span className="text-sm font-medium text-muted-foreground">ตรวจร่างกาย: </span>
+                              <span className="text-sm font-medium text-muted-foreground">
+                                ตรวจร่างกาย:
+                              </span>{" "}
                               <span className="text-sm">{consultation.physical_exam_note}</span>
                             </div>
                           )}
+
                           {consultation.notes && (
                             <div>
-                              <span className="text-sm font-medium text-muted-foreground">หมายเหตุ: </span>
-                              <span className="text-sm text-muted-foreground">{consultation.notes}</span>
+                              <span className="text-sm font-medium text-muted-foreground">
+                                หมายเหตุ:
+                              </span>{" "}
+                              <span className="text-sm text-muted-foreground">
+                                {consultation.notes}
+                              </span>
                             </div>
                           )}
                         </div>
+
+                        {/* RIGHT BUTTON */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteConsultation(consultation.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -564,24 +619,57 @@ const PatientDetail = () => {
                 ) : (
                   <div className="space-y-3">
                     {patientDiagnoses.map((diagnosis) => (
-                      <div key={diagnosis.id} className="p-4 rounded-lg border bg-card">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
+                      <div
+                        key={diagnosis.id}
+                        className="p-4 rounded-lg border bg-card flex items-center justify-between"
+                      >
+                        
+                        {/* LEFT CONTENT */}
+                        <div className="space-y-1">
+                          
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Badge className="font-mono">{diagnosis.icd10_code}</Badge>
-                            <Badge variant={diagnosis.diagnosis_type === 'primary' ? 'default' : 'secondary'}>
-                              {diagnosis.diagnosis_type === 'primary' ? 'หลัก' : 'รอง'}
+
+                            <Badge
+                              variant={
+                                diagnosis.diagnosis_type === "primary"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {diagnosis.diagnosis_type === "primary" ? "หลัก" : "รอง"}
                             </Badge>
+
+                            <span className="text-xs text-muted-foreground">
+                              {format(
+                                new Date(diagnosis.diagnosis_date),
+                                "d MMM yyyy",
+                                { locale: th }
+                              )}
+                            </span>
                           </div>
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(diagnosis.diagnosis_date), 'd MMM yyyy', { locale: th })}
-                          </span>
+
+                          {diagnosis.description && (
+                            <p className="text-sm">{diagnosis.description}</p>
+                          )}
+
+                          {diagnosis.notes && (
+                            <p className="text-sm text-muted-foreground">
+                              {diagnosis.notes}
+                            </p>
+                          )}
                         </div>
-                        {diagnosis.description && (
-                          <p className="text-sm">{diagnosis.description}</p>
-                        )}
-                        {diagnosis.notes && (
-                          <p className="text-sm text-muted-foreground mt-1">{diagnosis.notes}</p>
-                        )}
+
+                        {/* RIGHT BUTTON */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteDiagnosis(diagnosis.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        
                       </div>
                     ))}
                   </div>
@@ -613,39 +701,67 @@ const PatientDetail = () => {
                     {patientTreatmentPlans.map((plan) => {
                       const stepInfo = getStepInfo(plan.step);
                       return (
-                        <div key={plan.id} className="p-4 rounded-lg border bg-card">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="default">ขั้นตอนที่ {plan.step}: {stepInfo.name}</Badge>
-                              <span className="text-xs text-muted-foreground">{stepInfo.description}</span>
+                        <div key={plan.id} className="p-4 rounded-lg border bg-card flex items-center justify-between">
+                          
+                          {/* LEFT CONTENT */}
+                          <div className="space-y-1">
+                            
+                            {/* step + date */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="default">
+                                ขั้นตอนที่ {plan.step}: {stepInfo.name}
+                              </Badge>
+
+                              <span className="text-xs text-muted-foreground">
+                                {stepInfo.description}
+                              </span>
+
+                              <Badge variant="outline">
+                                {format(new Date(plan.plan_date), 'd MMM yyyy', { locale: th })}
+                              </Badge>
                             </div>
-                            <Badge variant="outline">
-                              {format(new Date(plan.plan_date), 'd MMM yyyy', { locale: th })}
-                            </Badge>
-                          </div>
-                          <p className="text-sm mb-2">{plan.step_details}</p>
-                          <div className="flex flex-wrap gap-4 text-sm">
-                            {plan.duration && (
-                              <div>
-                                <span className="text-muted-foreground">ระยะเวลา: </span>
-                                <span className="font-medium">{plan.duration}</span>
-                              </div>
-                            )}
-                            {plan.follow_up_date && (
-                              <div>
-                                <span className="text-muted-foreground">นัดติดตาม: </span>
-                                <span className="font-medium">
-                                  {format(new Date(plan.follow_up_date), 'd MMM yyyy', { locale: th })}
+
+                            {/* details */}
+                            <p className="text-sm">{plan.step_details}</p>
+
+                            {/* duration + followup */}
+                            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                              {plan.duration && (
+                                <span>ระยะเวลา: <span className="font-medium">{plan.duration}</span></span>
+                              )}
+
+                              {plan.follow_up_date && (
+                                <span>
+                                  นัดติดตาม:{" "}
+                                  <span className="font-medium">
+                                    {format(new Date(plan.follow_up_date), 'd MMM yyyy', { locale: th })}
+                                  </span>
                                 </span>
-                              </div>
+                              )}
+                            </div>
+
+                            {plan.notes && (
+                              <p className="text-sm text-muted-foreground">
+                                หมายเหตุ: {plan.notes}
+                              </p>
                             )}
                           </div>
-                          {plan.notes && (
-                            <p className="text-sm text-muted-foreground mt-1">หมายเหตุ: {plan.notes}</p>
-                          )}
+
+                          {/* RIGHT BUTTON */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteTreatmentPlan(plan.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+
                         </div>
+                                                
                       );
                     })}
+                    
                   </div>
                 )}
               </CardContent>

@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { getStepInfo } from '@/hooks/usePatientTreatmentPlansNew';
+import { getStepInfo } from '@/hooks/usePatientTreatmentPlans';
 
 interface PatientData {
   first_name: string;

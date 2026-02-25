@@ -70,4 +70,47 @@ export function useCreatePatientConsultation() {
       });
     },
   });
+
+}
+
+export function useDeletePatientConsultation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      patientId,
+    }: {
+      id: string;
+      patientId: string;
+    }) => {
+      const { error } = await supabase
+        .from('patient_consultations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      return { id, patientId };
+    },
+
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: ['patient-consultations', data.patientId],
+      });
+
+      toast({
+        title: 'ลบข้อมูลสำเร็จ',
+        description: 'ลบบันทึกอาการเรียบร้อยแล้ว',
+      });
+    },
+
+    onError: (error: Error) => {
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 }
