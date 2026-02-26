@@ -122,7 +122,8 @@ const PatientSignup = () => {
       const { error: signUpError } = await signUp(
         accountData.email, 
         accountData.password, 
-        `${verifiedPatient.first_name} ${verifiedPatient.last_name}`
+        `${verifiedPatient.first_name} ${verifiedPatient.last_name}`,
+        'patient'
       );
       
       if (signUpError) {

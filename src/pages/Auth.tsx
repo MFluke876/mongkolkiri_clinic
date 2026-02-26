@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Heart, Stethoscope, User } from "lucide-react";
 
-type UserRole = 'doctor' | 'patient' | null;
+type UserRole = 'doctor' | 'patient';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -18,11 +18,15 @@ const Auth = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole>(null);
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [signupForm, setSignupForm] = useState({ email: '', password: '', fullName: '' });
+  const [signupForm, setSignupForm] = useState<{email: string;
+                                                password: string;
+                                                fullName: string;
+                                                role: UserRole
+                                                ;}>
+                                              ({ email: '', password: '', fullName: '', role: "doctor" });
   
   // Patient forms
   const [patientLoginForm, setPatientLoginForm] = useState({ email: '', password: '' });
-  const [patientSignupForm, setPatientSignupForm] = useState({ email: '', password: '', fullName: '' });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +57,7 @@ const Auth = () => {
       return;
     }
     
-    const { error } = await signUp(signupForm.email, signupForm.password, signupForm.fullName);
+    const { error } = await signUp(signupForm.email, signupForm.password, signupForm.fullName, signupForm.role);
     
     if (error) {
       toast.error('ลงทะเบียนไม่สำเร็จ', { description: error.message });
@@ -83,29 +87,7 @@ const Auth = () => {
     setLoading(false);
   };
 
-  // Patient signup
-  const handlePatientSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    if (patientSignupForm.password.length < 6) {
-      toast.error('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
-      setLoading(false);
-      return;
-    }
-    
-    const { error } = await signUp(patientSignupForm.email, patientSignupForm.password, patientSignupForm.fullName);
-    
-    if (error) {
-      toast.error('ลงทะเบียนไม่สำเร็จ', { description: error.message });
-    } else {
-      toast.success('ลงทะเบียนสำเร็จ', { 
-        description: 'กรุณาเชื่อมต่อกับข้อมูลผู้ป่วยของคุณ' 
-      });
-      navigate('/patient-link');
-    }
-    setLoading(false);
-  };
+
 
   // Role selection screen
   if (!selectedRole) {
