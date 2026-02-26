@@ -21,7 +21,7 @@ const patientSchema = z.object({
   last_name: z.string().min(1, 'กรุณากรอกนามสกุล').max(100),
   dob: z.string().min(1, 'กรุณาเลือกวันเกิด'),
   gender: z.enum(['male', 'female', 'other']),
-  phone: z.string().max(20).optional(),
+  phone: z.string().max(10).optional(),
   address: z.string().max(500).optional(),
 });
 
@@ -196,6 +196,7 @@ const Register = () => {
                   </Label>
                   <Input
                     id="phone"
+                    maxLength={10}
                     placeholder="0812345678"
                     {...register('phone')}
                     className="h-11"
