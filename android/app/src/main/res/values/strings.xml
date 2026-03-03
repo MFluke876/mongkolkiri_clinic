@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mongkolkiri</string>
+    <string name="title_activity_main">Mongkolkiri</string>
+    <string name="package_name">com.mongkolkiri.clinic</string>
+    <string name="custom_url_scheme">com.mongkolkiri.clinic</string>
+</resources>
