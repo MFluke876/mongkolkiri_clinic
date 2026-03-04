@@ -1,28 +1,65 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { differenceInYears } from 'date-fns';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { useCreatePatient } from '@/hooks/usePatients';
-import { UserPlus, AlertTriangle, X, Calendar, Phone, MapPin, CreditCard } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { differenceInYears } from "date-fns";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { useCreatePatient } from "@/hooks/usePatients";
+import {
+  UserPlus,
+  AlertTriangle,
+  X,
+  Calendar,
+  Phone,
+  MapPin,
+  CreditCard,
+} from "lucide-react";
 
 const patientSchema = z.object({
-  national_id: z.string().regex(/^\d{13}$/, 'เลขบัตรประชาชนต้องมี 13 หลัก').optional().or(z.literal('')),
-  first_name: z.string().min(1, 'กรุณากรอกชื่อ').max(100),
-  last_name: z.string().min(1, 'กรุณากรอกนามสกุล').max(100),
-  dob: z.string().min(1, 'กรุณาเลือกวันเกิด'),
-  gender: z.enum(['male', 'female', 'other']),
-  phone: z.string().max(10).optional(),
-  address: z.string().max(500).optional(),
+  national_id: z
+    .string()
+    .min(0, "กรุณากรอกเลขบัตรประชาชน")
+    .regex(/^\d{13}$/, "เลขบัตรประชาชนต้องมี 13 หลัก")
+    .optional()
+    .or(z.literal("")),
+
+  first_name: z.string().min(1, "กรุณากรอกชื่อ").max(100),
+  last_name: z.string().min(1, "กรุณากรอกนามสกุล").max(100),
+  dob: z.string().min(0, "กรุณาเลือกวันเกิด"),
+  gender: z.enum(["male", "female", "other"]),
+
+  phone: z
+    .string()
+    .min(0, "กรุณากรอกเบอร์โทรศัพท์")
+    .regex(/^\d{10}$/, "เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก")
+    .optional()
+    .or(z.literal("")),
+  address: z
+    .string()
+    .min(0, "กรุณากรอกที่อยู่")
+    .max(500)
+    .optional()
+    .or(z.literal("")),
 });
 
 type PatientFormData = z.infer<typeof patientSchema>;
@@ -31,33 +68,33 @@ const Register = () => {
   const navigate = useNavigate();
   const createPatient = useCreatePatient();
   const [allergies, setAllergies] = useState<string[]>([]);
-  const [newAllergy, setNewAllergy] = useState('');
+  const [newAllergy, setNewAllergy] = useState("");
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
-    formState: { errors, isSubmitting }
+    formState: { errors, isSubmitting },
   } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
     defaultValues: {
-      gender: 'male'
-    }
+      gender: "male",
+    },
   });
 
-  const dob = watch('dob');
+  const dob = watch("dob");
   const age = dob ? differenceInYears(new Date(), new Date(dob)) : null;
 
   const addAllergy = () => {
     if (newAllergy.trim() && !allergies.includes(newAllergy.trim())) {
       setAllergies([...allergies, newAllergy.trim()]);
-      setNewAllergy('');
+      setNewAllergy("");
     }
   };
 
   const removeAllergy = (allergy: string) => {
-    setAllergies(allergies.filter(a => a !== allergy));
+    setAllergies(allergies.filter((a) => a !== allergy));
   };
 
   const onSubmit = async (data: PatientFormData) => {
@@ -70,10 +107,10 @@ const Register = () => {
         national_id: data.national_id || undefined,
         allergies,
         phone: data.phone || undefined,
-        address: data.address || undefined
+        address: data.address || undefined,
       });
 
-      navigate('/');
+      navigate("/doctor");
     } catch (error) {
       // Error handling is done in the mutation
     }
@@ -89,8 +126,12 @@ const Register = () => {
                 <UserPlus className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <CardTitle className="font-display text-xl">ลงทะเบียนผู้ป่วยใหม่</CardTitle>
-                <CardDescription>กรอกข้อมูลผู้ป่วยเพื่อสร้างเวชระเบียน</CardDescription>
+                <CardTitle className="font-display text-xl">
+                  ลงทะเบียนผู้ป่วยใหม่
+                </CardTitle>
+                <CardDescription>
+                  กรอกข้อมูลผู้ป่วยเพื่อสร้างเวชระเบียน
+                </CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -103,11 +144,13 @@ const Register = () => {
                   <Input
                     id="first_name"
                     placeholder="ชื่อ"
-                    {...register('first_name')}
+                    {...register("first_name")}
                     className="h-11"
                   />
                   {errors.first_name && (
-                    <p className="text-sm text-destructive">{errors.first_name.message}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.first_name.message}
+                    </p>
                   )}
                 </div>
 
@@ -116,18 +159,23 @@ const Register = () => {
                   <Input
                     id="last_name"
                     placeholder="นามสกุล"
-                    {...register('last_name')}
+                    {...register("last_name")}
                     className="h-11"
                   />
                   {errors.last_name && (
-                    <p className="text-sm text-destructive">{errors.last_name.message}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.last_name.message}
+                    </p>
                   )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="national_id" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="national_id"
+                    className="flex items-center gap-2"
+                  >
                     <CreditCard className="w-4 h-4" />
                     เลขบัตรประชาชน
                   </Label>
@@ -135,19 +183,23 @@ const Register = () => {
                     id="national_id"
                     placeholder="1234567890123"
                     maxLength={13}
-                    {...register('national_id')}
+                    {...register("national_id")}
                     className="h-11"
                   />
                   {errors.national_id && (
-                    <p className="text-sm text-destructive">{errors.national_id.message}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.national_id.message}
+                    </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label>เพศ *</Label>
-                  <Select 
-                    defaultValue="male" 
-                    onValueChange={(value) => setValue('gender', value as 'male' | 'female' | 'other')}
+                  <Select
+                    defaultValue="male"
+                    onValueChange={(value) =>
+                      setValue("gender", value as "male" | "female" | "other")
+                    }
                   >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="เลือกเพศ" />
@@ -170,11 +222,13 @@ const Register = () => {
                   <Input
                     id="dob"
                     type="date"
-                    {...register('dob')}
+                    {...register("dob")}
                     className="h-11"
                   />
                   {errors.dob && (
-                    <p className="text-sm text-destructive">{errors.dob.message}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.dob.message}
+                    </p>
                   )}
                 </div>
 
@@ -182,7 +236,7 @@ const Register = () => {
                   <Label>อายุ</Label>
                   <div className="h-11 px-3 flex items-center rounded-lg border border-input bg-muted/50">
                     <span className="text-foreground font-medium">
-                      {age !== null ? `${age} ปี` : '-'}
+                      {age !== null ? `${age} ปี` : "-"}
                     </span>
                   </div>
                 </div>
@@ -198,9 +252,14 @@ const Register = () => {
                     id="phone"
                     maxLength={10}
                     placeholder="0812345678"
-                    {...register('phone')}
+                    {...register("phone")}
                     className="h-11"
                   />
+                  {errors.phone && (
+                    <p className="text-sm text-destructive">
+                      {errors.phone.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -212,9 +271,14 @@ const Register = () => {
                 <Textarea
                   id="address"
                   placeholder="บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์"
-                  {...register('address')}
+                  {...register("address")}
                   rows={3}
                 />
+                {errors.address && (
+                  <p className="text-sm text-destructive">
+                    {errors.address.message}
+                  </p>
+                )}
               </div>
 
               {/* Allergies Section */}
@@ -223,16 +287,22 @@ const Register = () => {
                   <AlertTriangle className="w-4 h-4 text-warning" />
                   ประวัติแพ้ยา/อาหาร
                 </Label>
-                
+
                 <div className="flex gap-2">
                   <Input
                     placeholder="กรอกชื่อสารที่แพ้"
                     value={newAllergy}
                     onChange={(e) => setNewAllergy(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAllergy())}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && (e.preventDefault(), addAllergy())
+                    }
                     className="h-11"
                   />
-                  <Button type="button" variant="secondary" onClick={addAllergy}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={addAllergy}
+                  >
                     เพิ่ม
                   </Button>
                 </div>
@@ -241,9 +311,9 @@ const Register = () => {
                   <div className="allergy-alert">
                     <div className="flex flex-wrap gap-2">
                       {allergies.map((allergy, index) => (
-                        <Badge 
-                          key={index} 
-                          variant="destructive" 
+                        <Badge
+                          key={index}
+                          variant="destructive"
                           className="gap-1 pr-1"
                         >
                           {allergy}
@@ -267,7 +337,7 @@ const Register = () => {
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate("/doctor")}
                 >
                   ยกเลิก
                 </Button>
@@ -276,7 +346,7 @@ const Register = () => {
                   className="flex-1"
                   disabled={isSubmitting || createPatient.isPending}
                 >
-                  {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                  {isSubmitting ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
                 </Button>
               </div>
             </form>

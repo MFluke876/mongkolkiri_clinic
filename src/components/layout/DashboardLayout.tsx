@@ -18,11 +18,15 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+
+
 const navigation = [
-  { name: 'แดชบอร์ด', href: '/', icon: LayoutDashboard },
-  { name: 'ลงทะเบียนผู้ป่วย', href: '/register', icon: UserPlus },
-  { name: 'รายชื่อผู้ป่วย', href: '/patients', icon: Users },
+  { name: 'แดชบอร์ด', href: '/doctor', icon: LayoutDashboard },
+  { name: 'ลงทะเบียนผู้ป่วย', href: '/doctor/register', icon: UserPlus },
+  { name: 'รายชื่อผู้ป่วย', href: '/doctor/patients', icon: Users },
 ];
+
+const activeNav = navigation.find(n => n.href === location.pathname)
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
@@ -33,7 +37,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
-  };
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,7 +57,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-sidebar-border">
-            <Link to="/" className="flex items-center gap-3">
+            <Link to="/doctor" className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-sidebar-primary/20 flex items-center justify-center">
                 <Leaf className="w-6 h-6 text-sidebar-primary" />
               </div>
@@ -138,7 +142,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           
           <div className="flex-1 ml-4 lg:ml-0">
             <h2 className="text-lg font-display font-semibold text-foreground">
-              {navigation.find(n => n.href === location.pathname)?.name || 'ระบบบริหารจัดการคลินิก'}
+              {activeNav?.name || 'ระบบบริหารจัดการคลินิก'}
             </h2>
           </div>
         </header>
