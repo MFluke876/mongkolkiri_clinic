@@ -29,26 +29,20 @@ export interface CreatePrescriptionInput {
 
 export const usePrescriptions = (patientId?: string) => {
   return useQuery({
-    queryKey: ['prescriptions', patientId],
-    queryFn: async () => {
-      let query = supabase
-        .from('prescriptions')
-        .select(`
-          *,
-          medicine:medicines(id, name_thai, name_english, unit)
-        `);
-      
-      if (patientId) {
-        query = query.eq('patient_id', patientId);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as Prescription[];
-    },
-    enabled: patientId ? !!patientId : true
-  });
+              queryKey: ["prescriptions", patientId],
+              queryFn: async () => {
+                  const { data, error } = await supabase
+                  .from("prescriptions")
+                  .select(
+                      "id, prescription_date, quantity, usage_instruction, medicine:medicines(name_thai, name_english)",
+                  )
+                  .eq("patient_id", patientId)
+                  .order("created_at", { ascending: false });
+                  if (error) throw error;
+                  return data as unknown as Prescription[];
+              },
+              enabled: !!patientId,
+          });
 };
 
 export const useCreatePrescription = () => {
