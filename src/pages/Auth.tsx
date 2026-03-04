@@ -15,20 +15,23 @@ const Auth = () => {
   const navigate = useNavigate();
   const { signIn, signUp } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole>(null);
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  
   const [signupForm, setSignupForm] = useState<{email: string;
                                                 password: string;
                                                 fullName: string;
                                                 role: UserRole
                                                 ;}>
-                                              ({ email: '', password: '', fullName: '', role: "doctor" });
+                                              ({ email: '', 
+                                                password: '', 
+                                                fullName: '', 
+                                                role: "doctor" });
   
-  // Patient forms
-  const [patientLoginForm, setPatientLoginForm] = useState({ email: '', password: '' });
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent, path: string = '/') => {
     e.preventDefault();
     setLoading(true);
     
@@ -42,7 +45,7 @@ const Auth = () => {
       });
     } else {
       toast.success('เข้าสู่ระบบสำเร็จ');
-      navigate('/');
+      navigate(path);
     }
     setLoading(false);
   };
@@ -66,28 +69,6 @@ const Auth = () => {
     }
     setLoading(false);
   };
-
-  // Patient login
-  const handlePatientLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    const { error } = await signIn(patientLoginForm.email, patientLoginForm.password);
-    
-    if (error) {
-      toast.error('เข้าสู่ระบบไม่สำเร็จ', {
-        description: error.message === 'Invalid login credentials' 
-          ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' 
-          : error.message
-      });
-    } else {
-      toast.success('เข้าสู่ระบบสำเร็จ');
-      navigate('/patient');
-    }
-    setLoading(false);
-  };
-
-
 
   // Role selection screen
   if (!selectedRole) {
@@ -220,15 +201,15 @@ const Auth = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handlePatientLogin} className="space-y-4">
+                    <form onSubmit={(e) => handleLogin(e, '/patient')} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="patient-login-email">อีเมล</Label>
                         <Input
                           id="patient-login-email"
                           type="email"
                           placeholder="your@email.com"
-                          value={patientLoginForm.email}
-                          onChange={(e) => setPatientLoginForm({ ...patientLoginForm, email: e.target.value })}
+                          value={loginForm.email}
+                          onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                           required
                         />
                       </div>
@@ -238,8 +219,8 @@ const Auth = () => {
                           id="patient-login-password"
                           type="password"
                           placeholder="••••••••"
-                          value={patientLoginForm.password}
-                          onChange={(e) => setPatientLoginForm({ ...patientLoginForm, password: e.target.value })}
+                          value={loginForm.password}
+                          onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                           required
                         />
                       </div>
@@ -344,7 +325,7 @@ const Auth = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleLogin} className="space-y-4">
+                  <form onSubmit={(e) => handleLogin(e, '/doctor')} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="login-email">อีเมล</Label>
                       <Input

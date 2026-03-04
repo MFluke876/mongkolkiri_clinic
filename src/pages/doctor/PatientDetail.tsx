@@ -1,43 +1,76 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  ArrowLeft, 
-  User, 
-  Calendar, 
-  Phone, 
-  MapPin, 
-  CreditCard, 
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ArrowLeft,
+  User,
+  Calendar,
+  Phone,
+  MapPin,
+  CreditCard,
   AlertTriangle,
   Stethoscope,
   Pill,
   Plus,
   FileText,
-  Download
-} from 'lucide-react';
-import { differenceInYears, format } from 'date-fns';
-import { th } from 'date-fns/locale';
-import { usePatientDiagnoses, useCreatePatientDiagnosis, useDeletePatientDiagnosis } from '@/hooks/usePatientDiagnoses';
-import { usePatientConsultations, useCreatePatientConsultation, useDeletePatientConsultation } from '@/hooks/usePatientConsultations';
-import { usePatientTreatmentPlans, useCreatePatientTreatmentPlan, useDeletePatientTreatmentPlan, TREATMENT_STEPS, getStepInfo } from '@/hooks/usePatientTreatmentPlans';
-import { useMedicines } from '@/hooks/useMedicines';
-import { useCreatePrescription, useDeletePrescription } from '@/hooks/usePrescriptions';
-import { useProcedureOrders, useCreateProcedureOrder, useDeleteProcedureOrder } from '@/hooks/useProcedureOrders';
-import { useAuth } from '@/contexts/AuthContext';
-import { HeartPulse, Trash2, Scissors } from 'lucide-react';
-import { exportPatientPdf } from '@/utils/exportPatientPdf';
+  Download,
+} from "lucide-react";
+import { differenceInYears, format } from "date-fns";
+import { th } from "date-fns/locale";
+import {
+  usePatientDiagnoses,
+  useCreatePatientDiagnosis,
+  useDeletePatientDiagnosis,
+} from "@/hooks/usePatientDiagnoses";
+import {
+  usePatientConsultations,
+  useCreatePatientConsultation,
+  useDeletePatientConsultation,
+} from "@/hooks/usePatientConsultations";
+import {
+  usePatientTreatmentPlans,
+  useCreatePatientTreatmentPlan,
+  useDeletePatientTreatmentPlan,
+  TREATMENT_STEPS,
+  getStepInfo,
+} from "@/hooks/usePatientTreatmentPlans";
+import { useMedicines } from "@/hooks/useMedicines";
+import {
+  useCreatePrescription,
+  useDeletePrescription,
+} from "@/hooks/usePrescriptions";
+import {
+  useProcedureOrders,
+  useCreateProcedureOrder,
+  useDeleteProcedureOrder,
+} from "@/hooks/useProcedureOrders";
+import { useAuth } from "@/contexts/AuthContext";
+import { HeartPulse, Trash2, Scissors } from "lucide-react";
+import { exportPatientPdf } from "@/utils/exportPatientPdf";
 
 interface PatientInfo {
   id: string;
@@ -64,97 +97,119 @@ interface PrescriptionRecord {
   } | null;
 }
 
+const today = () => format(new Date(), "yyyy-MM-dd");
+
+const getDefaultDiagnosis = () => ({
+    diagnosis_date: today(),
+    icd10_code: "",
+    description: "",
+    diagnosis_type: "primary",
+    notes: "",
+  });
+
+const getDefaultConsultation = () => ({
+    consultation_date: today(),
+    chief_complaint: "",
+    physical_exam_note: "",
+    vital_signs: {
+      blood_pressure: "",
+      heart_rate: "",
+      temperature: "",
+      respiratory_rate: "",
+      weight: "",
+      height: "",
+    },
+    notes: "",
+  });
+
+const getDefaultTreatmentPlan = () => ({
+    plan_date: today(),
+    step: 1,
+    step_details: "",
+    duration: "",
+    follow_up_date: "",
+    notes: "",
+  });
+
+const getDefaultProcedure = () => ({
+    procedure_date: today(),
+    procedure_name: "",
+    body_part: "",
+    notes: "",
+    status: "completed",
+  });
+
+const getDefaultPrescription = () => ({
+    prescription_date: today(),
+    medicine_id: "",
+    quantity: 1,
+    usage_instruction: "",
+  });
+
 const PatientDetail = () => {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   // Dialog state
   const [diagnosisDialogOpen, setDiagnosisDialogOpen] = useState(false);
-  const [consultationDialogOpen, setConsultationDialogOpen] = useState(false);
+  const [newDiagnosis, setNewDiagnosis] = useState(getDefaultDiagnosis());
+
   const [prescriptionDialogOpen, setPrescriptionDialogOpen] = useState(false);
-  const [newPrescription, setNewPrescription] = useState({
-    prescription_date: format(new Date(), 'yyyy-MM-dd'),
-    medicine_id: '',
-    quantity: 1,
-    usage_instruction: ''
-  });
+  const [newPrescription, setNewPrescription] = useState(getDefaultPrescription);
+
   const [procedureDialogOpen, setProcedureDialogOpen] = useState(false);
-  const [newProcedure, setNewProcedure] = useState({
-    procedure_date: format(new Date(), 'yyyy-MM-dd'),
-    procedure_name: '',
-    body_part: '',
-    notes: '',
-    status: 'completed'
-  });
+  const [newProcedure, setNewProcedure] = useState(getDefaultProcedure);
+
   const [treatmentPlanDialogOpen, setTreatmentPlanDialogOpen] = useState(false);
-  const [newTreatmentPlan, setNewTreatmentPlan] = useState({
-    plan_date: format(new Date(), 'yyyy-MM-dd'),
-    step: 1,
-    step_details: '',
-    duration: '',
-    follow_up_date: '',
-    notes: ''
-  });
-  const [newDiagnosis, setNewDiagnosis] = useState({
-    diagnosis_date: format(new Date(), 'yyyy-MM-dd'),
-    icd10_code: '',
-    description: '',
-    diagnosis_type: 'primary',
-    notes: ''
-  });
-  const [newConsultation, setNewConsultation] = useState({
-    consultation_date: format(new Date(), 'yyyy-MM-dd'),
-    chief_complaint: '',
-    physical_exam_note: '',
-    vital_signs: {
-      blood_pressure: '',
-      heart_rate: '',
-      temperature: '',
-      respiratory_rate: '',
-      weight: '',
-      height: ''
-    },
-    notes: ''
-  });
+  const [newTreatmentPlan, setNewTreatmentPlan] = useState(getDefaultTreatmentPlan);
+
+  const [consultationDialogOpen, setConsultationDialogOpen] = useState(false);
+  const [newConsultation, setNewConsultation] = useState(getDefaultConsultation);
+
 
   const { data: patient, isLoading } = useQuery({
-    queryKey: ['patient-detail', patientId],
+    queryKey: ["patient-detail", patientId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('id', patientId)
+        .from("patients")
+        .select("*")
+        .eq("id", patientId)
         .single();
 
       if (error) throw error;
       return data as PatientInfo;
     },
-    enabled: !!patientId
+    enabled: !!patientId,
   });
 
   // Fetch prescriptions directly by patient_id
-  const { data: patientPrescriptions = [], isLoading: prescriptionsLoading } = useQuery({
-    queryKey: ['prescriptions', patientId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('prescriptions')
-        .select('id, prescription_date, quantity, usage_instruction, medicine:medicines(name_thai, name_english)')
-        .eq('patient_id', patientId)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as unknown as PrescriptionRecord[];
-    },
-    enabled: !!patientId
-  });
+  const { data: patientPrescriptions = [], isLoading: prescriptionsLoading } =
+    useQuery({
+      queryKey: ["prescriptions", patientId],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from("prescriptions")
+          .select(
+            "id, prescription_date, quantity, usage_instruction, medicine:medicines(name_thai, name_english)",
+          )
+          .eq("patient_id", patientId)
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        return data as unknown as PrescriptionRecord[];
+      },
+      enabled: !!patientId,
+    });
 
   // Fetch patient diagnoses from new standalone table
-  const { data: patientDiagnoses = [], isLoading: diagnosesLoading } = usePatientDiagnoses(patientId || '');
+  const { data: patientDiagnoses = [], isLoading: diagnosesLoading } =
+    usePatientDiagnoses(patientId || "");
   const createDiagnosis = useCreatePatientDiagnosis();
   const deleteDiagnosis = useDeletePatientDiagnosis();
 
   // Fetch patient consultations
-  const { data: patientConsultations = [], isLoading: consultationsLoading } = usePatientConsultations(patientId || '');
+  const { data: patientConsultations = [], isLoading: consultationsLoading } =
+    usePatientConsultations(patientId || "");
   const createConsultation = useCreatePatientConsultation();
   const deleteConsultation = useDeletePatientConsultation();
 
@@ -164,18 +219,21 @@ const PatientDetail = () => {
   const deletePrescription = useDeletePrescription();
 
   // Fetch patient treatment plans (new table)
-  const { data: patientTreatmentPlans = [], isLoading: treatmentPlansLoading } = usePatientTreatmentPlans(patientId || '');
+  const { data: patientTreatmentPlans = [], isLoading: treatmentPlansLoading } =
+    usePatientTreatmentPlans(patientId || "");
   const createTreatmentPlan = useCreatePatientTreatmentPlan();
   const deleteTreatmentPlan = useDeletePatientTreatmentPlan();
 
   // Fetch procedure orders
-  const { data: procedureOrders = [], isLoading: proceduresLoading } = useProcedureOrders(patientId);
+  const { data: procedureOrders = [], isLoading: proceduresLoading } =
+    useProcedureOrders(patientId);
   const createProcedure = useCreateProcedureOrder();
   const deleteProcedure = useDeleteProcedureOrder();
 
+  //Diagnosis handlers
   const handleAddDiagnosis = async () => {
     if (!patientId || !newDiagnosis.icd10_code.trim()) return;
-    
+
     await createDiagnosis.mutateAsync({
       patient_id: patientId,
       diagnosis_date: newDiagnosis.diagnosis_date,
@@ -183,17 +241,11 @@ const PatientDetail = () => {
       description: newDiagnosis.description.trim() || undefined,
       diagnosis_type: newDiagnosis.diagnosis_type,
       notes: newDiagnosis.notes.trim() || undefined,
-      created_by: user?.id
+      created_by: user?.id,
     });
-    
+
     // Reset form and close dialog
-    setNewDiagnosis({
-      diagnosis_date: format(new Date(), 'yyyy-MM-dd'),
-      icd10_code: '',
-      description: '',
-      diagnosis_type: 'primary',
-      notes: ''
-    });
+    setNewDiagnosis(getDefaultDiagnosis());
     setDiagnosisDialogOpen(false);
   };
   const handleDeleteDiagnosis = async (diagnosisId: string) => {
@@ -201,42 +253,35 @@ const PatientDetail = () => {
     await deleteDiagnosis.mutateAsync({ id: diagnosisId, patientId });
   };
 
+  //Consultation handlers
   const handleAddConsultation = async () => {
     if (!patientId || !newConsultation.chief_complaint.trim()) return;
-    
+
     // Filter out empty vital signs
-    const filteredVitalSigns: Record<string, string | number> = {};
-    Object.entries(newConsultation.vital_signs).forEach(([key, value]) => {
-      if (value && String(value).trim()) {
-        filteredVitalSigns[key] = String(value).trim();
-      }
-    });
+    const cleanObject = <T extends Record<string, any>>(obj: T) =>
+      Object.fromEntries(
+        Object.entries(obj).filter(
+          ([_, value]) => value && String(value).trim()
+        )
+      );
+    const vital_signs = cleanObject(newConsultation.vital_signs);
 
     await createConsultation.mutateAsync({
       patient_id: patientId,
       consultation_date: newConsultation.consultation_date,
       chief_complaint: newConsultation.chief_complaint.trim(),
-      physical_exam_note: newConsultation.physical_exam_note.trim() || undefined,
-      vital_signs: Object.keys(filteredVitalSigns).length > 0 ? filteredVitalSigns : undefined,
+      physical_exam_note:
+        newConsultation.physical_exam_note.trim() || undefined,
+      vital_signs:
+        Object.keys(vital_signs).length > 0
+          ? vital_signs
+          : undefined,
       notes: newConsultation.notes.trim() || undefined,
-      created_by: user?.id
+      created_by: user?.id,
     });
-    
+
     // Reset form and close dialog
-    setNewConsultation({
-      consultation_date: format(new Date(), 'yyyy-MM-dd'),
-      chief_complaint: '',
-      physical_exam_note: '',
-      vital_signs: {
-        blood_pressure: '',
-        heart_rate: '',
-        temperature: '',
-        respiratory_rate: '',
-        weight: '',
-        height: ''
-      },
-      notes: ''
-    });
+    setNewConsultation(getDefaultConsultation());
     setConsultationDialogOpen(false);
   };
 
@@ -245,10 +290,10 @@ const PatientDetail = () => {
     await deleteConsultation.mutateAsync({ id: consultationId, patientId });
   };
 
-
+  //Treatment plan handlers
   const handleAddTreatmentPlan = async () => {
     if (!patientId || !newTreatmentPlan.step_details.trim()) return;
-    
+
     await createTreatmentPlan.mutateAsync({
       patient_id: patientId,
       plan_date: newTreatmentPlan.plan_date,
@@ -257,38 +302,36 @@ const PatientDetail = () => {
       duration: newTreatmentPlan.duration.trim() || undefined,
       follow_up_date: newTreatmentPlan.follow_up_date || undefined,
       notes: newTreatmentPlan.notes.trim() || undefined,
-      created_by: user?.id
+      created_by: user?.id,
     });
-    
-    setNewTreatmentPlan({
-      plan_date: format(new Date(), 'yyyy-MM-dd'),
-      step: 1,
-      step_details: '',
-      duration: '',
-      follow_up_date: '',
-      notes: ''
-    });
+
+    setNewTreatmentPlan(getDefaultTreatmentPlan());
     setTreatmentPlanDialogOpen(false);
   };
 
- const handleDeleteTreatmentPlan = async (planId: string) => {
+  const handleDeleteTreatmentPlan = async (planId: string) => {
     if (!patientId) return;
     await deleteTreatmentPlan.mutateAsync({ id: planId, patientId });
   };
 
-
+  //Prescription handlers
   const handleAddPrescription = async () => {
-    if (!patientId || !newPrescription.medicine_id || newPrescription.quantity < 1) return;
-    
+    if (
+      !patientId ||
+      !newPrescription.medicine_id ||
+      newPrescription.quantity < 1
+    )
+      return;
+
     await createPrescription.mutateAsync({
       patient_id: patientId,
       prescription_date: newPrescription.prescription_date,
       medicine_id: newPrescription.medicine_id,
       quantity: newPrescription.quantity,
-      usage_instruction: newPrescription.usage_instruction.trim() || undefined
+      usage_instruction: newPrescription.usage_instruction.trim() || undefined,
     });
-    
-    setNewPrescription({ prescription_date: format(new Date(), 'yyyy-MM-dd'), medicine_id: '', quantity: 1, usage_instruction: '' });
+
+    setNewPrescription(getDefaultPrescription());
     setPrescriptionDialogOpen(false);
   };
 
@@ -297,25 +340,20 @@ const PatientDetail = () => {
     await deletePrescription.mutateAsync({ id: prescriptionId, patientId });
   };
 
+  //Procedure handlers
   const handleAddProcedure = async () => {
     if (!patientId || !newProcedure.procedure_name.trim()) return;
-    
+
     await createProcedure.mutateAsync({
       patient_id: patientId,
       procedure_date: newProcedure.procedure_date,
       procedure_name: newProcedure.procedure_name.trim(),
       body_part: newProcedure.body_part.trim() || undefined,
       notes: newProcedure.notes.trim() || undefined,
-      status: newProcedure.status
+      status: newProcedure.status,
     });
-    
-    setNewProcedure({
-      procedure_date: format(new Date(), 'yyyy-MM-dd'),
-      procedure_name: '',
-      body_part: '',
-      notes: '',
-      status: 'completed'
-    });
+
+    setNewProcedure(getDefaultProcedure());
     setProcedureDialogOpen(false);
   };
 
@@ -341,7 +379,7 @@ const PatientDetail = () => {
       <DashboardLayout>
         <div className="text-center py-12">
           <p className="text-muted-foreground">ไม่พบข้อมูลผู้ป่วย</p>
-          <Button variant="link" onClick={() => navigate('/patients')}>
+          <Button variant="link" onClick={() => navigate("/doctor/patients")}>
             กลับหน้ารายชื่อผู้ป่วย
           </Button>
         </div>
@@ -351,14 +389,19 @@ const PatientDetail = () => {
 
   const age = differenceInYears(new Date(), new Date(patient.dob));
   const hasAllergies = patient.allergies && patient.allergies.length > 0;
-  const genderLabel = patient.gender === 'male' ? 'ชาย' : patient.gender === 'female' ? 'หญิง' : 'อื่นๆ';
+  const genderLabel =
+    patient.gender === "male"
+      ? "ชาย"
+      : patient.gender === "female"
+        ? "หญิง"
+        : "อื่นๆ";
 
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate('/patients')}>
+          <Button variant="ghost" onClick={() => navigate("/doctor/patients")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             กลับ
           </Button>
@@ -366,16 +409,18 @@ const PatientDetail = () => {
             variant="outline"
             size="sm"
             className="gap-2"
-            onClick={() => exportPatientPdf({
-              patient: {
-                ...patient,
-                allergies: patient.allergies || [],
-              },
-              consultations: patientConsultations,
-              diagnoses: patientDiagnoses,
-              treatmentPlans: patientTreatmentPlans,
-              prescriptions: patientPrescriptions,
-            })}
+            onClick={() =>
+              exportPatientPdf({
+                patient: {
+                  ...patient,
+                  allergies: patient.allergies || [],
+                },
+                consultations: patientConsultations,
+                diagnoses: patientDiagnoses,
+                treatmentPlans: patientTreatmentPlans,
+                prescriptions: patientPrescriptions,
+              })
+            }
           >
             <Download className="h-4 w-4" />
             ส่งออก PDF
@@ -413,7 +458,12 @@ const PatientDetail = () => {
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">วันเกิด:</span>
-                  <span>{format(new Date(patient.dob), 'd MMMM yyyy', { locale: th })} ({age} ปี)</span>
+                  <span>
+                    {format(new Date(patient.dob), "d MMMM yyyy", {
+                      locale: th,
+                    })}{" "}
+                    ({age} ปี)
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <User className="h-4 w-4 text-muted-foreground" />
@@ -423,7 +473,9 @@ const PatientDetail = () => {
                 {patient.national_id && (
                   <div className="flex items-center gap-2 text-sm">
                     <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">เลขบัตรประชาชน:</span>
+                    <span className="text-muted-foreground">
+                      เลขบัตรประชาชน:
+                    </span>
                     <span>{patient.national_id}</span>
                   </div>
                 )}
@@ -453,7 +505,11 @@ const PatientDetail = () => {
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {patient.allergies.map((allergy, i) => (
-                        <Badge key={i} variant="destructive" className="text-xs">
+                        <Badge
+                          key={i}
+                          variant="destructive"
+                          className="text-xs"
+                        >
                           {allergy}
                         </Badge>
                       ))}
@@ -494,8 +550,14 @@ const PatientDetail = () => {
           <TabsContent value="consultations">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">บันทึกอาการ ({patientConsultations.length} รายการ)</CardTitle>
-                <Button onClick={() => setConsultationDialogOpen(true)} size="sm" className="gap-1">
+                <CardTitle className="text-lg">
+                  บันทึกอาการ ({patientConsultations.length} รายการ)
+                </CardTitle>
+                <Button
+                  onClick={() => setConsultationDialogOpen(true)}
+                  size="sm"
+                  className="gap-1"
+                >
                   <Plus className="h-4 w-4" />
                   เพิ่มบันทึกอาการ
                 </Button>
@@ -507,7 +569,9 @@ const PatientDetail = () => {
                     <Skeleton className="h-20 w-full" />
                   </div>
                 ) : patientConsultations.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">ยังไม่มีบันทึกอาการ</p>
+                  <p className="text-muted-foreground text-center py-8">
+                    ยังไม่มีบันทึกอาการ
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {patientConsultations.map((consultation) => (
@@ -517,44 +581,79 @@ const PatientDetail = () => {
                       >
                         {/* LEFT CONTENT */}
                         <div className="space-y-2">
-                          
                           <Badge variant="outline">
-                            {format(new Date(consultation.consultation_date), 'd MMM yyyy', { locale: th })}
+                            {format(
+                              new Date(consultation.consultation_date),
+                              "d MMM yyyy",
+                              { locale: th },
+                            )}
                           </Badge>
 
                           <div>
                             <span className="text-sm font-medium text-muted-foreground">
                               อาการหลัก:
                             </span>{" "}
-                            <span className="text-sm">{consultation.chief_complaint}</span>
+                            <span className="text-sm">
+                              {consultation.chief_complaint}
+                            </span>
                           </div>
 
                           {consultation.vital_signs &&
-                            Object.keys(consultation.vital_signs).length > 0 && (
+                            Object.keys(consultation.vital_signs).length >
+                              0 && (
                               <div className="flex flex-wrap gap-2">
                                 {consultation.vital_signs.blood_pressure && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    BP: {String(consultation.vital_signs.blood_pressure)}
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    BP:{" "}
+                                    {String(
+                                      consultation.vital_signs.blood_pressure,
+                                    )}
                                   </Badge>
                                 )}
                                 {consultation.vital_signs.heart_rate && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    HR: {String(consultation.vital_signs.heart_rate)}
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    HR:{" "}
+                                    {String(
+                                      consultation.vital_signs.heart_rate,
+                                    )}
                                   </Badge>
                                 )}
                                 {consultation.vital_signs.temperature && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Temp: {String(consultation.vital_signs.temperature)}°C
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    Temp:{" "}
+                                    {String(
+                                      consultation.vital_signs.temperature,
+                                    )}
+                                    °C
                                   </Badge>
                                 )}
                                 {consultation.vital_signs.respiratory_rate && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    RR: {String(consultation.vital_signs.respiratory_rate)}
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    RR:{" "}
+                                    {String(
+                                      consultation.vital_signs.respiratory_rate,
+                                    )}
                                   </Badge>
                                 )}
                                 {consultation.vital_signs.weight && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    น้ำหนัก: {String(consultation.vital_signs.weight)} kg
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    น้ำหนัก:{" "}
+                                    {String(consultation.vital_signs.weight)} kg
                                   </Badge>
                                 )}
                               </div>
@@ -565,7 +664,9 @@ const PatientDetail = () => {
                               <span className="text-sm font-medium text-muted-foreground">
                                 ตรวจร่างกาย:
                               </span>{" "}
-                              <span className="text-sm">{consultation.physical_exam_note}</span>
+                              <span className="text-sm">
+                                {consultation.physical_exam_note}
+                              </span>
                             </div>
                           )}
 
@@ -586,7 +687,9 @@ const PatientDetail = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteConsultation(consultation.id)}
+                          onClick={() =>
+                            handleDeleteConsultation(consultation.id)
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -602,8 +705,14 @@ const PatientDetail = () => {
           <TabsContent value="diagnoses">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">ประวัติการวินิจฉัย ({patientDiagnoses.length} รายการ)</CardTitle>
-                <Button onClick={() => setDiagnosisDialogOpen(true)} size="sm" className="gap-1">
+                <CardTitle className="text-lg">
+                  ประวัติการวินิจฉัย ({patientDiagnoses.length} รายการ)
+                </CardTitle>
+                <Button
+                  onClick={() => setDiagnosisDialogOpen(true)}
+                  size="sm"
+                  className="gap-1"
+                >
                   <Plus className="h-4 w-4" />
                   เพิ่มการวินิจฉัย
                 </Button>
@@ -615,7 +724,9 @@ const PatientDetail = () => {
                     <Skeleton className="h-20 w-full" />
                   </div>
                 ) : patientDiagnoses.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">ยังไม่มีประวัติการวินิจฉัย</p>
+                  <p className="text-muted-foreground text-center py-8">
+                    ยังไม่มีประวัติการวินิจฉัย
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {patientDiagnoses.map((diagnosis) => (
@@ -623,12 +734,12 @@ const PatientDetail = () => {
                         key={diagnosis.id}
                         className="p-4 rounded-lg border bg-card flex items-center justify-between"
                       >
-                        
                         {/* LEFT CONTENT */}
                         <div className="space-y-1">
-                          
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge className="font-mono">{diagnosis.icd10_code}</Badge>
+                            <Badge className="font-mono">
+                              {diagnosis.icd10_code}
+                            </Badge>
 
                             <Badge
                               variant={
@@ -637,14 +748,16 @@ const PatientDetail = () => {
                                   : "secondary"
                               }
                             >
-                              {diagnosis.diagnosis_type === "primary" ? "หลัก" : "รอง"}
+                              {diagnosis.diagnosis_type === "primary"
+                                ? "หลัก"
+                                : "รอง"}
                             </Badge>
 
                             <span className="text-xs text-muted-foreground">
                               {format(
                                 new Date(diagnosis.diagnosis_date),
                                 "d MMM yyyy",
-                                { locale: th }
+                                { locale: th },
                               )}
                             </span>
                           </div>
@@ -669,7 +782,6 @@ const PatientDetail = () => {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                        
                       </div>
                     ))}
                   </div>
@@ -682,8 +794,14 @@ const PatientDetail = () => {
           <TabsContent value="treatment-plans">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">แผนการรักษา ({patientTreatmentPlans.length} รายการ)</CardTitle>
-                <Button onClick={() => setTreatmentPlanDialogOpen(true)} size="sm" className="gap-1">
+                <CardTitle className="text-lg">
+                  แผนการรักษา ({patientTreatmentPlans.length} รายการ)
+                </CardTitle>
+                <Button
+                  onClick={() => setTreatmentPlanDialogOpen(true)}
+                  size="sm"
+                  className="gap-1"
+                >
                   <Plus className="h-4 w-4" />
                   เพิ่มแผนการรักษา
                 </Button>
@@ -695,17 +813,20 @@ const PatientDetail = () => {
                     <Skeleton className="h-20 w-full" />
                   </div>
                 ) : patientTreatmentPlans.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">ยังไม่มีแผนการรักษา</p>
+                  <p className="text-muted-foreground text-center py-8">
+                    ยังไม่มีแผนการรักษา
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {patientTreatmentPlans.map((plan) => {
                       const stepInfo = getStepInfo(plan.step);
                       return (
-                        <div key={plan.id} className="p-4 rounded-lg border bg-card flex items-center justify-between">
-                          
+                        <div
+                          key={plan.id}
+                          className="p-4 rounded-lg border bg-card flex items-center justify-between"
+                        >
                           {/* LEFT CONTENT */}
                           <div className="space-y-1">
-                            
                             {/* step + date */}
                             <div className="flex items-center gap-2 flex-wrap">
                               <Badge variant="default">
@@ -717,7 +838,11 @@ const PatientDetail = () => {
                               </span>
 
                               <Badge variant="outline">
-                                {format(new Date(plan.plan_date), 'd MMM yyyy', { locale: th })}
+                                {format(
+                                  new Date(plan.plan_date),
+                                  "d MMM yyyy",
+                                  { locale: th },
+                                )}
                               </Badge>
                             </div>
 
@@ -727,14 +852,23 @@ const PatientDetail = () => {
                             {/* duration + followup */}
                             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                               {plan.duration && (
-                                <span>ระยะเวลา: <span className="font-medium">{plan.duration}</span></span>
+                                <span>
+                                  ระยะเวลา:{" "}
+                                  <span className="font-medium">
+                                    {plan.duration}
+                                  </span>
+                                </span>
                               )}
 
                               {plan.follow_up_date && (
                                 <span>
                                   นัดติดตาม:{" "}
                                   <span className="font-medium">
-                                    {format(new Date(plan.follow_up_date), 'd MMM yyyy', { locale: th })}
+                                    {format(
+                                      new Date(plan.follow_up_date),
+                                      "d MMM yyyy",
+                                      { locale: th },
+                                    )}
                                   </span>
                                 </span>
                               )}
@@ -756,12 +890,9 @@ const PatientDetail = () => {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-
                         </div>
-                                                
                       );
                     })}
-                    
                   </div>
                 )}
               </CardContent>
@@ -772,8 +903,14 @@ const PatientDetail = () => {
           <TabsContent value="procedures">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">บันทึกหัตถการ ({procedureOrders.length} รายการ)</CardTitle>
-                <Button onClick={() => setProcedureDialogOpen(true)} size="sm" className="gap-1">
+                <CardTitle className="text-lg">
+                  บันทึกหัตถการ ({procedureOrders.length} รายการ)
+                </CardTitle>
+                <Button
+                  onClick={() => setProcedureDialogOpen(true)}
+                  size="sm"
+                  className="gap-1"
+                >
                   <Plus className="h-4 w-4" />
                   เพิ่มหัตถการ
                 </Button>
@@ -785,26 +922,55 @@ const PatientDetail = () => {
                     <Skeleton className="h-20 w-full" />
                   </div>
                 ) : procedureOrders.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">ยังไม่มีบันทึกหัตถการ</p>
+                  <p className="text-muted-foreground text-center py-8">
+                    ยังไม่มีบันทึกหัตถการ
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {procedureOrders.map((proc) => (
-                      <div key={proc.id} className="p-3 rounded-lg border bg-card flex items-center justify-between">
+                      <div
+                        key={proc.id}
+                        className="p-3 rounded-lg border bg-card flex items-center justify-between"
+                      >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{proc.procedure_name}</span>
-                            <Badge variant={proc.status === 'completed' ? 'default' : proc.status === 'cancelled' ? 'destructive' : 'secondary'}>
-                              {proc.status === 'completed' ? 'เสร็จสิ้น' : proc.status === 'cancelled' ? 'ยกเลิก' : 'รอดำเนินการ'}
+                            <span className="font-medium">
+                              {proc.procedure_name}
+                            </span>
+                            <Badge
+                              variant={
+                                proc.status === "completed"
+                                  ? "default"
+                                  : proc.status === "cancelled"
+                                    ? "destructive"
+                                    : "secondary"
+                              }
+                            >
+                              {proc.status === "completed"
+                                ? "เสร็จสิ้น"
+                                : proc.status === "cancelled"
+                                  ? "ยกเลิก"
+                                  : "รอดำเนินการ"}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             {proc.procedure_date && (
-                              <span>{format(new Date(proc.procedure_date), 'd MMM yyyy', { locale: th })}</span>
+                              <span>
+                                {format(
+                                  new Date(proc.procedure_date),
+                                  "d MMM yyyy",
+                                  { locale: th },
+                                )}
+                              </span>
                             )}
-                            {proc.body_part && <span>บริเวณ: {proc.body_part}</span>}
+                            {proc.body_part && (
+                              <span>บริเวณ: {proc.body_part}</span>
+                            )}
                           </div>
                           {proc.notes && (
-                            <p className="text-sm text-muted-foreground">หมายเหตุ: {proc.notes}</p>
+                            <p className="text-sm text-muted-foreground">
+                              หมายเหตุ: {proc.notes}
+                            </p>
                           )}
                         </div>
                         <Button
@@ -827,8 +993,14 @@ const PatientDetail = () => {
           <TabsContent value="medications">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">ประวัติการรับยา ({patientPrescriptions.length} รายการ)</CardTitle>
-                <Button onClick={() => setPrescriptionDialogOpen(true)} size="sm" className="gap-1">
+                <CardTitle className="text-lg">
+                  ประวัติการรับยา ({patientPrescriptions.length} รายการ)
+                </CardTitle>
+                <Button
+                  onClick={() => setPrescriptionDialogOpen(true)}
+                  size="sm"
+                  className="gap-1"
+                >
                   <Plus className="h-4 w-4" />
                   เพิ่มคำสั่งยา
                 </Button>
@@ -840,25 +1012,39 @@ const PatientDetail = () => {
                     <Skeleton className="h-20 w-full" />
                   </div>
                 ) : patientPrescriptions.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">ยังไม่มีประวัติการรับยา</p>
+                  <p className="text-muted-foreground text-center py-8">
+                    ยังไม่มีประวัติการรับยา
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {patientPrescriptions.map((p) => (
-                      <div key={p.id} className="p-3 rounded-lg border bg-card flex items-center justify-between">
+                      <div
+                        key={p.id}
+                        className="p-3 rounded-lg border bg-card flex items-center justify-between"
+                      >
                         <div>
-                          <span className="font-medium">{p.medicine?.name_thai || 'ไม่ระบุ'}</span>
+                          <span className="font-medium">
+                            {p.medicine?.name_thai || "ไม่ระบุ"}
+                          </span>
                           {p.medicine?.name_english && (
-                            <span className="text-muted-foreground text-sm ml-2">({p.medicine.name_english})</span>
+                            <span className="text-muted-foreground text-sm ml-2">
+                              ({p.medicine.name_english})
+                            </span>
                           )}
                           {p.prescription_date && (
                             <span className="text-muted-foreground text-xs ml-2">
-                              {format(new Date(p.prescription_date), 'd MMM yyyy', { locale: th })}
+                              {format(
+                                new Date(p.prescription_date),
+                                "d MMM yyyy",
+                                { locale: th },
+                              )}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-muted-foreground">
-                            {p.quantity} {p.usage_instruction && `- ${p.usage_instruction}`}
+                            {p.quantity}{" "}
+                            {p.usage_instruction && `- ${p.usage_instruction}`}
                           </span>
                           <Button
                             variant="ghost"
@@ -879,7 +1065,10 @@ const PatientDetail = () => {
         </Tabs>
 
         {/* Add Diagnosis Dialog */}
-        <Dialog open={diagnosisDialogOpen} onOpenChange={setDiagnosisDialogOpen}>
+        <Dialog
+          open={diagnosisDialogOpen}
+          onOpenChange={setDiagnosisDialogOpen}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>เพิ่มการวินิจฉัยใหม่</DialogTitle>
@@ -891,7 +1080,12 @@ const PatientDetail = () => {
                   id="diagnosis_date"
                   type="date"
                   value={newDiagnosis.diagnosis_date}
-                  onChange={(e) => setNewDiagnosis(prev => ({ ...prev, diagnosis_date: e.target.value }))}
+                  onChange={(e) =>
+                    setNewDiagnosis((prev) => ({
+                      ...prev,
+                      diagnosis_date: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -900,7 +1094,12 @@ const PatientDetail = () => {
                   id="icd10_code"
                   placeholder="เช่น J06.9"
                   value={newDiagnosis.icd10_code}
-                  onChange={(e) => setNewDiagnosis(prev => ({ ...prev, icd10_code: e.target.value }))}
+                  onChange={(e) =>
+                    setNewDiagnosis((prev) => ({
+                      ...prev,
+                      icd10_code: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -909,14 +1108,24 @@ const PatientDetail = () => {
                   id="description"
                   placeholder="เช่น Upper respiratory infection"
                   value={newDiagnosis.description}
-                  onChange={(e) => setNewDiagnosis(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setNewDiagnosis((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="diagnosis_type">ประเภท</Label>
                 <Select
                   value={newDiagnosis.diagnosis_type}
-                  onValueChange={(value) => setNewDiagnosis(prev => ({ ...prev, diagnosis_type: value }))}
+                  onValueChange={(value) =>
+                    setNewDiagnosis((prev) => ({
+                      ...prev,
+                      diagnosis_type: value,
+                    }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -933,27 +1142,40 @@ const PatientDetail = () => {
                   id="notes"
                   placeholder="หมายเหตุเพิ่มเติม..."
                   value={newDiagnosis.notes}
-                  onChange={(e) => setNewDiagnosis(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e) =>
+                    setNewDiagnosis((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
                   rows={3}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDiagnosisDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setDiagnosisDialogOpen(false)}
+              >
                 ยกเลิก
               </Button>
-              <Button 
-                onClick={handleAddDiagnosis} 
-                disabled={!newDiagnosis.icd10_code.trim() || createDiagnosis.isPending}
+              <Button
+                onClick={handleAddDiagnosis}
+                disabled={
+                  !newDiagnosis.icd10_code.trim() || createDiagnosis.isPending
+                }
               >
-                {createDiagnosis.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                {createDiagnosis.isPending ? "กำลังบันทึก..." : "บันทึก"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Add Consultation Dialog */}
-        <Dialog open={consultationDialogOpen} onOpenChange={setConsultationDialogOpen}>
+        <Dialog
+          open={consultationDialogOpen}
+          onOpenChange={setConsultationDialogOpen}
+        >
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>เพิ่มบันทึกอาการใหม่</DialogTitle>
@@ -965,94 +1187,166 @@ const PatientDetail = () => {
                   id="consultation_date"
                   type="date"
                   value={newConsultation.consultation_date}
-                  onChange={(e) => setNewConsultation(prev => ({ ...prev, consultation_date: e.target.value }))}
+                  onChange={(e) =>
+                    setNewConsultation((prev) => ({
+                      ...prev,
+                      consultation_date: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="chief_complaint">อาการหลัก (Chief Complaint) *</Label>
+                <Label htmlFor="chief_complaint">
+                  อาการหลัก (Chief Complaint) *
+                </Label>
                 <Textarea
                   id="chief_complaint"
                   placeholder="เช่น ปวดหัว เวียนศีรษะ 3 วัน"
                   value={newConsultation.chief_complaint}
-                  onChange={(e) => setNewConsultation(prev => ({ ...prev, chief_complaint: e.target.value }))}
+                  onChange={(e) =>
+                    setNewConsultation((prev) => ({
+                      ...prev,
+                      chief_complaint: e.target.value,
+                    }))
+                  }
                   rows={2}
                 />
               </div>
-              
+
               {/* Vital Signs */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Vital Signs</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label htmlFor="blood_pressure" className="text-xs text-muted-foreground">ความดันโลหิต (BP)</Label>
+                    <Label
+                      htmlFor="blood_pressure"
+                      className="text-xs text-muted-foreground"
+                    >
+                      ความดันโลหิต (BP)
+                    </Label>
                     <Input
                       id="blood_pressure"
                       placeholder="เช่น 120/80"
                       value={newConsultation.vital_signs.blood_pressure}
-                      onChange={(e) => setNewConsultation(prev => ({ 
-                        ...prev, 
-                        vital_signs: { ...prev.vital_signs, blood_pressure: e.target.value }
-                      }))}
+                      onChange={(e) =>
+                        setNewConsultation((prev) => ({
+                          ...prev,
+                          vital_signs: {
+                            ...prev.vital_signs,
+                            blood_pressure: e.target.value,
+                          },
+                        }))
+                      }
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="heart_rate" className="text-xs text-muted-foreground">ชีพจร (HR)</Label>
+                    <Label
+                      htmlFor="heart_rate"
+                      className="text-xs text-muted-foreground"
+                    >
+                      ชีพจร (HR)
+                    </Label>
                     <Input
                       id="heart_rate"
                       placeholder="เช่น 80"
                       value={newConsultation.vital_signs.heart_rate}
-                      onChange={(e) => setNewConsultation(prev => ({ 
-                        ...prev, 
-                        vital_signs: { ...prev.vital_signs, heart_rate: e.target.value }
-                      }))}
+                      onChange={(e) =>
+                        setNewConsultation((prev) => ({
+                          ...prev,
+                          vital_signs: {
+                            ...prev.vital_signs,
+                            heart_rate: e.target.value,
+                          },
+                        }))
+                      }
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="temperature" className="text-xs text-muted-foreground">อุณหภูมิ (°C)</Label>
+                    <Label
+                      htmlFor="temperature"
+                      className="text-xs text-muted-foreground"
+                    >
+                      อุณหภูมิ (°C)
+                    </Label>
                     <Input
                       id="temperature"
                       placeholder="เช่น 36.5"
                       value={newConsultation.vital_signs.temperature}
-                      onChange={(e) => setNewConsultation(prev => ({ 
-                        ...prev, 
-                        vital_signs: { ...prev.vital_signs, temperature: e.target.value }
-                      }))}
+                      onChange={(e) =>
+                        setNewConsultation((prev) => ({
+                          ...prev,
+                          vital_signs: {
+                            ...prev.vital_signs,
+                            temperature: e.target.value,
+                          },
+                        }))
+                      }
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="respiratory_rate" className="text-xs text-muted-foreground">อัตราหายใจ (RR)</Label>
+                    <Label
+                      htmlFor="respiratory_rate"
+                      className="text-xs text-muted-foreground"
+                    >
+                      อัตราหายใจ (RR)
+                    </Label>
                     <Input
                       id="respiratory_rate"
                       placeholder="เช่น 18"
                       value={newConsultation.vital_signs.respiratory_rate}
-                      onChange={(e) => setNewConsultation(prev => ({ 
-                        ...prev, 
-                        vital_signs: { ...prev.vital_signs, respiratory_rate: e.target.value }
-                      }))}
+                      onChange={(e) =>
+                        setNewConsultation((prev) => ({
+                          ...prev,
+                          vital_signs: {
+                            ...prev.vital_signs,
+                            respiratory_rate: e.target.value,
+                          },
+                        }))
+                      }
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="weight" className="text-xs text-muted-foreground">น้ำหนัก (kg)</Label>
+                    <Label
+                      htmlFor="weight"
+                      className="text-xs text-muted-foreground"
+                    >
+                      น้ำหนัก (kg)
+                    </Label>
                     <Input
                       id="weight"
                       placeholder="เช่น 65"
                       value={newConsultation.vital_signs.weight}
-                      onChange={(e) => setNewConsultation(prev => ({ 
-                        ...prev, 
-                        vital_signs: { ...prev.vital_signs, weight: e.target.value }
-                      }))}
+                      onChange={(e) =>
+                        setNewConsultation((prev) => ({
+                          ...prev,
+                          vital_signs: {
+                            ...prev.vital_signs,
+                            weight: e.target.value,
+                          },
+                        }))
+                      }
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="height" className="text-xs text-muted-foreground">ส่วนสูง (cm)</Label>
+                    <Label
+                      htmlFor="height"
+                      className="text-xs text-muted-foreground"
+                    >
+                      ส่วนสูง (cm)
+                    </Label>
                     <Input
                       id="height"
                       placeholder="เช่น 170"
                       value={newConsultation.vital_signs.height}
-                      onChange={(e) => setNewConsultation(prev => ({ 
-                        ...prev, 
-                        vital_signs: { ...prev.vital_signs, height: e.target.value }
-                      }))}
+                      onChange={(e) =>
+                        setNewConsultation((prev) => ({
+                          ...prev,
+                          vital_signs: {
+                            ...prev.vital_signs,
+                            height: e.target.value,
+                          },
+                        }))
+                      }
                     />
                   </div>
                 </div>
@@ -1064,7 +1358,12 @@ const PatientDetail = () => {
                   id="physical_exam_note"
                   placeholder="ผลการตรวจร่างกาย..."
                   value={newConsultation.physical_exam_note}
-                  onChange={(e) => setNewConsultation(prev => ({ ...prev, physical_exam_note: e.target.value }))}
+                  onChange={(e) =>
+                    setNewConsultation((prev) => ({
+                      ...prev,
+                      physical_exam_note: e.target.value,
+                    }))
+                  }
                   rows={2}
                 />
               </div>
@@ -1074,27 +1373,41 @@ const PatientDetail = () => {
                   id="consultation_notes"
                   placeholder="หมายเหตุเพิ่มเติม..."
                   value={newConsultation.notes}
-                  onChange={(e) => setNewConsultation(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e) =>
+                    setNewConsultation((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
                   rows={2}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setConsultationDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setConsultationDialogOpen(false)}
+              >
                 ยกเลิก
               </Button>
-              <Button 
-                onClick={handleAddConsultation} 
-                disabled={!newConsultation.chief_complaint.trim() || createConsultation.isPending}
+              <Button
+                onClick={handleAddConsultation}
+                disabled={
+                  !newConsultation.chief_complaint.trim() ||
+                  createConsultation.isPending
+                }
               >
-                {createConsultation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                {createConsultation.isPending ? "กำลังบันทึก..." : "บันทึก"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Add Treatment Plan Dialog */}
-        <Dialog open={treatmentPlanDialogOpen} onOpenChange={setTreatmentPlanDialogOpen}>
+        <Dialog
+          open={treatmentPlanDialogOpen}
+          onOpenChange={setTreatmentPlanDialogOpen}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>เพิ่มแผนการรักษาใหม่</DialogTitle>
@@ -1106,14 +1419,24 @@ const PatientDetail = () => {
                   id="plan_date"
                   type="date"
                   value={newTreatmentPlan.plan_date}
-                  onChange={(e) => setNewTreatmentPlan(prev => ({ ...prev, plan_date: e.target.value }))}
+                  onChange={(e) =>
+                    setNewTreatmentPlan((prev) => ({
+                      ...prev,
+                      plan_date: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="step">ขั้นตอนการรักษา *</Label>
                 <Select
                   value={String(newTreatmentPlan.step)}
-                  onValueChange={(value) => setNewTreatmentPlan(prev => ({ ...prev, step: Number(value) }))}
+                  onValueChange={(value) =>
+                    setNewTreatmentPlan((prev) => ({
+                      ...prev,
+                      step: Number(value),
+                    }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -1133,7 +1456,12 @@ const PatientDetail = () => {
                   id="step_details"
                   placeholder="รายละเอียดของขั้นตอนการรักษา..."
                   value={newTreatmentPlan.step_details}
-                  onChange={(e) => setNewTreatmentPlan(prev => ({ ...prev, step_details: e.target.value }))}
+                  onChange={(e) =>
+                    setNewTreatmentPlan((prev) => ({
+                      ...prev,
+                      step_details: e.target.value,
+                    }))
+                  }
                   rows={3}
                 />
               </div>
@@ -1143,7 +1471,12 @@ const PatientDetail = () => {
                   id="duration"
                   placeholder="เช่น 7 วัน, 2 สัปดาห์"
                   value={newTreatmentPlan.duration}
-                  onChange={(e) => setNewTreatmentPlan(prev => ({ ...prev, duration: e.target.value }))}
+                  onChange={(e) =>
+                    setNewTreatmentPlan((prev) => ({
+                      ...prev,
+                      duration: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1152,7 +1485,12 @@ const PatientDetail = () => {
                   id="follow_up_date"
                   type="date"
                   value={newTreatmentPlan.follow_up_date}
-                  onChange={(e) => setNewTreatmentPlan(prev => ({ ...prev, follow_up_date: e.target.value }))}
+                  onChange={(e) =>
+                    setNewTreatmentPlan((prev) => ({
+                      ...prev,
+                      follow_up_date: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1161,27 +1499,41 @@ const PatientDetail = () => {
                   id="treatment_notes"
                   placeholder="หมายเหตุเพิ่มเติม..."
                   value={newTreatmentPlan.notes}
-                  onChange={(e) => setNewTreatmentPlan(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e) =>
+                    setNewTreatmentPlan((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
                   rows={2}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setTreatmentPlanDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setTreatmentPlanDialogOpen(false)}
+              >
                 ยกเลิก
               </Button>
               <Button
                 onClick={handleAddTreatmentPlan}
-                disabled={!newTreatmentPlan.step_details.trim() || createTreatmentPlan.isPending}
+                disabled={
+                  !newTreatmentPlan.step_details.trim() ||
+                  createTreatmentPlan.isPending
+                }
               >
-                {createTreatmentPlan.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                {createTreatmentPlan.isPending ? "กำลังบันทึก..." : "บันทึก"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Add Procedure Dialog */}
-        <Dialog open={procedureDialogOpen} onOpenChange={setProcedureDialogOpen}>
+        <Dialog
+          open={procedureDialogOpen}
+          onOpenChange={setProcedureDialogOpen}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>เพิ่มบันทึกหัตถการ</DialogTitle>
@@ -1193,7 +1545,12 @@ const PatientDetail = () => {
                   id="procedure_date"
                   type="date"
                   value={newProcedure.procedure_date}
-                  onChange={(e) => setNewProcedure(prev => ({ ...prev, procedure_date: e.target.value }))}
+                  onChange={(e) =>
+                    setNewProcedure((prev) => ({
+                      ...prev,
+                      procedure_date: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1202,7 +1559,12 @@ const PatientDetail = () => {
                   id="procedure_name"
                   placeholder="เช่น เย็บแผล, ล้างแผล, ตัดไหม"
                   value={newProcedure.procedure_name}
-                  onChange={(e) => setNewProcedure(prev => ({ ...prev, procedure_name: e.target.value }))}
+                  onChange={(e) =>
+                    setNewProcedure((prev) => ({
+                      ...prev,
+                      procedure_name: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1211,14 +1573,21 @@ const PatientDetail = () => {
                   id="body_part"
                   placeholder="เช่น แขนซ้าย, หน้าผาก"
                   value={newProcedure.body_part}
-                  onChange={(e) => setNewProcedure(prev => ({ ...prev, body_part: e.target.value }))}
+                  onChange={(e) =>
+                    setNewProcedure((prev) => ({
+                      ...prev,
+                      body_part: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="procedure_status">สถานะ</Label>
                 <Select
                   value={newProcedure.status}
-                  onValueChange={(value) => setNewProcedure(prev => ({ ...prev, status: value }))}
+                  onValueChange={(value) =>
+                    setNewProcedure((prev) => ({ ...prev, status: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -1236,27 +1605,41 @@ const PatientDetail = () => {
                   id="procedure_notes"
                   placeholder="หมายเหตุเพิ่มเติม..."
                   value={newProcedure.notes}
-                  onChange={(e) => setNewProcedure(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e) =>
+                    setNewProcedure((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
                   rows={3}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setProcedureDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setProcedureDialogOpen(false)}
+              >
                 ยกเลิก
               </Button>
               <Button
                 onClick={handleAddProcedure}
-                disabled={!newProcedure.procedure_name.trim() || createProcedure.isPending}
+                disabled={
+                  !newProcedure.procedure_name.trim() ||
+                  createProcedure.isPending
+                }
               >
-                {createProcedure.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                {createProcedure.isPending ? "กำลังบันทึก..." : "บันทึก"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Add Prescription Dialog */}
-        <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
+        <Dialog
+          open={prescriptionDialogOpen}
+          onOpenChange={setPrescriptionDialogOpen}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>เพิ่มคำสั่งยา</DialogTitle>
@@ -1268,14 +1651,24 @@ const PatientDetail = () => {
                   id="rx_date"
                   type="date"
                   value={newPrescription.prescription_date}
-                  onChange={(e) => setNewPrescription(prev => ({ ...prev, prescription_date: e.target.value }))}
+                  onChange={(e) =>
+                    setNewPrescription((prev) => ({
+                      ...prev,
+                      prescription_date: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label>เลือกยา *</Label>
                 <Select
                   value={newPrescription.medicine_id}
-                  onValueChange={(value) => setNewPrescription(prev => ({ ...prev, medicine_id: value }))}
+                  onValueChange={(value) =>
+                    setNewPrescription((prev) => ({
+                      ...prev,
+                      medicine_id: value,
+                    }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="เลือกยา" />
@@ -1283,7 +1676,9 @@ const PatientDetail = () => {
                   <SelectContent>
                     {medicines.map((med) => (
                       <SelectItem key={med.id} value={med.id}>
-                        {med.name_thai}{med.name_english ? ` (${med.name_english})` : ''} - คงเหลือ {med.stock_qty} {med.unit || ''}
+                        {med.name_thai}
+                        {med.name_english ? ` (${med.name_english})` : ""} -
+                        คงเหลือ {med.stock_qty} {med.unit || ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1296,7 +1691,12 @@ const PatientDetail = () => {
                   type="number"
                   min={1}
                   value={newPrescription.quantity}
-                  onChange={(e) => setNewPrescription(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                  onChange={(e) =>
+                    setNewPrescription((prev) => ({
+                      ...prev,
+                      quantity: parseInt(e.target.value) || 1,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1305,20 +1705,33 @@ const PatientDetail = () => {
                   id="rx_usage"
                   placeholder="เช่น รับประทานครั้งละ 1 เม็ด วันละ 3 ครั้ง หลังอาหาร"
                   value={newPrescription.usage_instruction}
-                  onChange={(e) => setNewPrescription(prev => ({ ...prev, usage_instruction: e.target.value }))}
+                  onChange={(e) =>
+                    setNewPrescription((prev) => ({
+                      ...prev,
+                      usage_instruction: e.target.value,
+                    }))
+                  }
                   rows={2}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setPrescriptionDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setPrescriptionDialogOpen(false)}
+              >
                 ยกเลิก
               </Button>
               <Button
                 onClick={handleAddPrescription}
-                disabled={!newPrescription.prescription_date || !newPrescription.medicine_id || newPrescription.quantity < 1 || createPrescription.isPending}
+                disabled={
+                  !newPrescription.prescription_date ||
+                  !newPrescription.medicine_id ||
+                  newPrescription.quantity < 1 ||
+                  createPrescription.isPending
+                }
               >
-                {createPrescription.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                {createPrescription.isPending ? "กำลังบันทึก..." : "บันทึก"}
               </Button>
             </DialogFooter>
           </DialogContent>
