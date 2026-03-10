@@ -8,12 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Heart, Stethoscope, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 type UserRole = 'doctor' | 'patient';
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signOut} = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
 
@@ -32,22 +33,59 @@ const Auth = () => {
   
 
   const handleLogin = async (e: React.FormEvent, path: string = '/') => {
-    e.preventDefault();
-    setLoading(true);
-    
-    const { error } = await signIn(loginForm.email, loginForm.password);
-    
-    if (error) {
-      toast.error('เข้าสู่ระบบไม่สำเร็จ', {
-        description: error.message === 'Invalid login credentials' 
-          ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' 
-          : error.message
-      });
-    } else {
+      e.preventDefault();
+      setLoading(true);
+      
+      const { data, error } = await signIn(loginForm.email, loginForm.password);
+      
+      console.log(data.user?.id)
+
+      if (error) {
+        toast.error('เข้าสู่ระบบไม่สำเร็จ', {
+          description: error.message === 'Invalid login credentials' 
+            ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' 
+            : error.message
+        });
+        
+        setLoading(false);
+        return;
+      } 
+
+      //logged in successfully, now check role
+      
+      const { data: user_roles, error: roleError } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', data.user?.id)
+        .maybeSingle();
+
+      if (roleError) {
+        toast.error('เข้าสู่ระบบไม่สำเร็จ', {
+          description: roleError.message === 'Invalid login credentials' 
+            ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' 
+            : roleError.message
+        });
+        
+        await signOut()
+        setLoading(false);
+        return;
+      }
+
+      if ((path === '/doctor' && user_roles.role !== 'doctor') || (path === '/patient' && user_roles.role !== 'patient')) {
+        toast.error('เข้าสู่ระบบไม่สำเร็จ', {
+            description: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' 
+          });
+
+        await signOut()
+        setLoading(false);
+        return;
+      }
+
+
       toast.success('เข้าสู่ระบบสำเร็จ');
       navigate(path);
-    }
-    setLoading(false);
+    
+      setLoading(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -318,12 +356,14 @@ const Auth = () => {
 
             <TabsContent value="login">
               <Card>
+                
                 <CardHeader>
                   <CardTitle className="text-xl font-display">เข้าสู่ระบบ</CardTitle>
                   <CardDescription>
                     เข้าสู่ระบบด้วยบัญชีแพทย์/เจ้าหน้าที่
                   </CardDescription>
                 </CardHeader>
+
                 <CardContent>
                   <form onSubmit={(e) => handleLogin(e, '/doctor')} className="space-y-4">
                     <div className="space-y-2">
