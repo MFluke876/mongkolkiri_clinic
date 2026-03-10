@@ -13,13 +13,11 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { useAuth } from "@/contexts/AuthContext";
 
 import {
   useCreatePrescription,
@@ -28,10 +26,7 @@ import {
 } from "@/hooks/usePrescriptions";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { useQuery } from "@tanstack/react-query";
 import { useMedicines } from "@/hooks/useMedicines";
-import { supabase } from "@/integrations/supabase/client";
-
 
 interface Props {
   patientId: string;
@@ -64,7 +59,6 @@ const getDefaultPrescription = () => ({
 
 
 export const PrescriptionSection = ({ patientId }: Props) => {
-     const { user } = useAuth();
 
     const { data: medicines = [] } = useMedicines();
     

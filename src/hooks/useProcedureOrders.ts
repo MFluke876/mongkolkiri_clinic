@@ -11,6 +11,7 @@ export interface ProcedureOrder {
   body_part: string | null;
   notes: string | null;
   status: string | null;
+  has_images: boolean;
   created_at: string;
 }
 
@@ -21,6 +22,8 @@ export interface CreateProcedureOrderInput {
   body_part?: string;
   notes?: string;
   status?: string;
+  has_images: boolean;
+
 }
 
 export const useProcedureOrders = (patientId?: string) => {
@@ -55,7 +58,8 @@ export const useCreateProcedureOrder = () => {
           procedure_name: input.procedure_name,
           body_part: input.body_part || null,
           notes: input.notes || null,
-          status: input.status || 'pending'
+          status: input.status || 'pending',
+          has_images: input.has_images 
         } as any)
         .select()
         .single();

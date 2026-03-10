@@ -10,6 +10,7 @@ export interface PatientDiagnosis {
   description: string | null;
   diagnosis_type: string | null;
   notes: string | null;
+  has_images: boolean;
   created_at: string;
   created_by: string | null;
 }
@@ -21,6 +22,7 @@ export interface CreatePatientDiagnosisInput {
   description?: string;
   diagnosis_type?: string;
   notes?: string;
+  has_images: boolean;
   created_by?: string;
 }
 

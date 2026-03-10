@@ -195,107 +195,107 @@ export const TreatmentSection = ({ patientId }: Props) => {
                 open={treatmentPlanDialogOpen}
                 onOpenChange={setTreatmentPlanDialogOpen}
             >
-                <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>เพิ่มแผนการรักษาใหม่</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                    <Label htmlFor="plan_date">วันที่วางแผน</Label>
-                    <Input
-                        id="plan_date"
-                        type="date"
-                        value={newTreatmentPlan.plan_date}
-                        onChange={(e) =>
-                        setNewTreatmentPlan((prev) => ({
-                            ...prev,
-                            plan_date: e.target.value,
-                        }))
-                        }
-                    />
-                    </div>
-                    <div className="space-y-2">
-                    <Label htmlFor="step">ขั้นตอนการรักษา *</Label>
-                    <Select
-                        value={String(newTreatmentPlan.step)}
-                        onValueChange={(value) =>
-                        setNewTreatmentPlan((prev) => ({
-                            ...prev,
-                            step: Number(value),
-                        }))
-                        }
-                    >
-                        <SelectTrigger>
-                        <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {TREATMENT_STEPS.map((s) => (
-                            <SelectItem key={s.step} value={String(s.step)}>
-                            {s.step}. {s.name} - {s.description}
-                            </SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                    </div>
-                    <div className="space-y-2">
-                    <Label htmlFor="step_details">รายละเอียดขั้นตอน *</Label>
-                    <Textarea
-                        id="step_details"
-                        placeholder="รายละเอียดของขั้นตอนการรักษา..."
-                        value={newTreatmentPlan.step_details}
-                        onChange={(e) =>
-                        setNewTreatmentPlan((prev) => ({
-                            ...prev,
-                            step_details: e.target.value,
-                        }))
-                        }
-                        rows={3}
-                    />
-                    </div>
-                    <div className="space-y-2">
-                    <Label htmlFor="duration">ระยะเวลา</Label>
-                    <Input
-                        id="duration"
-                        placeholder="เช่น 7 วัน, 2 สัปดาห์"
-                        value={newTreatmentPlan.duration}
-                        onChange={(e) =>
-                        setNewTreatmentPlan((prev) => ({
-                            ...prev,
-                            duration: e.target.value,
-                        }))
-                        }
-                    />
-                    </div>
-                    <div className="space-y-2">
-                    <Label htmlFor="follow_up_date">วันนัดติดตาม</Label>
-                    <Input
-                        id="follow_up_date"
-                        type="date"
-                        value={newTreatmentPlan.follow_up_date}
-                        onChange={(e) =>
-                        setNewTreatmentPlan((prev) => ({
-                            ...prev,
-                            follow_up_date: e.target.value,
-                        }))
-                        }
-                    />
-                    </div>
-                    <div className="space-y-2">
-                    <Label htmlFor="treatment_notes">หมายเหตุ</Label>
-                    <Textarea
-                        id="treatment_notes"
-                        placeholder="หมายเหตุเพิ่มเติม..."
-                        value={newTreatmentPlan.notes}
-                        onChange={(e) =>
-                        setNewTreatmentPlan((prev) => ({
-                            ...prev,
-                            notes: e.target.value,
-                        }))
-                        }
-                        rows={2}
-                    />
-                    </div>
-                </div>
+                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>เพิ่มแผนการรักษาใหม่</DialogTitle>
+                    </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                            <Label htmlFor="plan_date">วันที่วางแผน</Label>
+                            <Input
+                                id="plan_date"
+                                type="date"
+                                value={newTreatmentPlan.plan_date}
+                                onChange={(e) =>
+                                setNewTreatmentPlan((prev) => ({
+                                    ...prev,
+                                    plan_date: e.target.value,
+                                }))
+                                }
+                            />
+                            </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="step">ขั้นตอนการรักษา *</Label>
+                            <Select
+                                value={String(newTreatmentPlan.step)}
+                                onValueChange={(value) =>
+                                setNewTreatmentPlan((prev) => ({
+                                    ...prev,
+                                    step: Number(value),
+                                }))
+                                }
+                            >
+                                <SelectTrigger>
+                                <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                {TREATMENT_STEPS.map((s) => (
+                                    <SelectItem key={s.step} value={String(s.step)}>
+                                    {s.step}. {s.name} - {s.description}
+                                    </SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="step_details">รายละเอียดขั้นตอน *</Label>
+                            <Textarea
+                                id="step_details"
+                                placeholder="รายละเอียดของขั้นตอนการรักษา..."
+                                value={newTreatmentPlan.step_details}
+                                onChange={(e) =>
+                                setNewTreatmentPlan((prev) => ({
+                                    ...prev,
+                                    step_details: e.target.value,
+                                }))
+                                }
+                                rows={3}
+                            />
+                            </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="duration">ระยะเวลา</Label>
+                            <Input
+                                id="duration"
+                                placeholder="เช่น 7 วัน, 2 สัปดาห์"
+                                value={newTreatmentPlan.duration}
+                                onChange={(e) =>
+                                setNewTreatmentPlan((prev) => ({
+                                    ...prev,
+                                    duration: e.target.value,
+                                }))
+                                }
+                            />
+                            </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="follow_up_date">วันนัดติดตาม</Label>
+                            <Input
+                                id="follow_up_date"
+                                type="date"
+                                value={newTreatmentPlan.follow_up_date}
+                                onChange={(e) =>
+                                setNewTreatmentPlan((prev) => ({
+                                    ...prev,
+                                    follow_up_date: e.target.value,
+                                }))
+                                }
+                            />
+                            </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="treatment_notes">หมายเหตุ</Label>
+                            <Textarea
+                                id="treatment_notes"
+                                placeholder="หมายเหตุเพิ่มเติม..."
+                                value={newTreatmentPlan.notes}
+                                onChange={(e) =>
+                                setNewTreatmentPlan((prev) => ({
+                                    ...prev,
+                                    notes: e.target.value,
+                                }))
+                                }
+                                rows={2}
+                            />
+                            </div>
+                        </div>
                 <DialogFooter>
                     <Button
                     variant="outline"

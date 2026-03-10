@@ -10,6 +10,7 @@ export interface PatientConsultation {
   physical_exam_note: string | null;
   vital_signs: Record<string, string | number> | null;
   notes: string | null;
+  has_images: boolean;
   created_at: string;
   created_by: string | null;
 }
@@ -21,6 +22,7 @@ export interface CreatePatientConsultationInput {
   physical_exam_note?: string;
   vital_signs?: Record<string, string | number>;
   notes?: string;
+  has_images: boolean;
   created_by?: string;
 }
 

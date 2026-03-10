@@ -1,6 +1,5 @@
 import { format } from "date-fns";
-import { th } from "date-fns/locale";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import {
   Dialog,
@@ -13,16 +12,18 @@ import {
 import { TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { usePatientConsultations } from "../hooks/usePatientConsultations";
-import { useCreatePatientConsultation, useDeletePatientConsultation } from "../hooks/usePatientConsultations";
+import { usePatientConsultations } from "@/hooks/usePatientConsultations";
+import { useCreatePatientConsultation, useDeletePatientConsultation } from "@/hooks/usePatientConsultations";
 import { useState } from "react";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
+import { ConsultationRow } from "./ConsultationRow";
+import { Carousel, fetchImages } from "../Carousel";
+import { useCreateMedicalImages, useDeleteMedicalImages } from "@/hooks/useMedicalImages";
 
 interface Props {
   patientId: string;
@@ -44,53 +45,86 @@ const getDefaultConsultation = () => ({
   });
 
 
+// Filter out empty vital signs
+const cleanObject = <T extends Record<string, any>>(obj: T) =>
+Object.fromEntries(
+    Object.entries(obj).filter(
+    ([_, value]) => value && String(value).trim()
+    )
+);
+
 export const ConsultationSection = ({ patientId }: Props) => {
   const { user } = useAuth();
 
-   const { data: patientConsultations = [], isLoading: consultationsLoading } =
-     usePatientConsultations(patientId || "");
+   const { data: patientConsultations = [], isLoading: consultationsLoading } = usePatientConsultations(patientId);
+
+
    const createConsultation = useCreatePatientConsultation();
    const deleteConsultation = useDeletePatientConsultation();
 
-    
-    const [consultationDialogOpen, setConsultationDialogOpen] = useState(false);
-    const [newConsultation, setNewConsultation] = useState(getDefaultConsultation);
+   const createMedicalImages = useCreateMedicalImages();
+   const deleteMedicalImages = useDeleteMedicalImages();
 
+    const [consultationDialogOpen, setConsultationDialogOpen] = useState(false);
+    const [newConsultation, setNewConsultation] = useState(getDefaultConsultation());
+
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
         
     const handleAddConsultation = async () => {
         if (!patientId || !newConsultation.chief_complaint.trim()) return;
 
-        // Filter out empty vital signs
-        const cleanObject = <T extends Record<string, any>>(obj: T) =>
-        Object.fromEntries(
-            Object.entries(obj).filter(
-            ([_, value]) => value && String(value).trim()
-            )
-        );
         const vital_signs = cleanObject(newConsultation.vital_signs);
 
-        await createConsultation.mutateAsync({
-        patient_id: patientId,
-        consultation_date: newConsultation.consultation_date,
-        chief_complaint: newConsultation.chief_complaint.trim(),
-        physical_exam_note:
-            newConsultation.physical_exam_note.trim() || undefined,
-        vital_signs:
-            Object.keys(vital_signs).length > 0
-            ? vital_signs
-            : undefined,
-        notes: newConsultation.notes.trim() || undefined,
-        created_by: user?.id,
+        const consultation = await createConsultation.mutateAsync({
+          patient_id: patientId,
+          consultation_date: newConsultation.consultation_date,
+          chief_complaint: newConsultation.chief_complaint.trim(),
+          physical_exam_note:
+              newConsultation.physical_exam_note.trim() || undefined,
+          vital_signs:
+              Object.keys(vital_signs).length > 0
+              ? vital_signs
+              : undefined,
+          notes: newConsultation.notes.trim() || undefined,
+          has_images: selectedFiles.length > 0,
+          created_by: user?.id,
         });
+
+        if (selectedFiles.length > 0) {
+            await createMedicalImages.mutateAsync({
+                patientId: patientId,
+                entityType: "consultation",
+                entityId: consultation.id,
+                files: selectedFiles,
+                createdBy: user?.id,
+            });
+        }
 
         // Reset form and close dialog
         setNewConsultation(getDefaultConsultation());
         setConsultationDialogOpen(false);
+        setSelectedFiles([]);
     };
 
     const handleDeleteConsultation = async (consultationId: string) => {
         if (!patientId) return;
+        
+        await deleteMedicalImages.mutateAsync({patientId: patientId, entityType: "consultation", entityId: consultationId });
         await deleteConsultation.mutateAsync({ id: consultationId, patientId });
+    };
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [images, setImages] = useState<string[]>([]);
+
+    const openViewer = async (consultationId: string) => {
+        const consultationImages = await fetchImages(patientId, "consultation", consultationId);
+        
+        setImages(consultationImages);
+        setViewerOpen(true);
+    };
+
+    const closeViewer = () => {
+        setViewerOpen(false);
     };
 
   return (
@@ -123,127 +157,18 @@ export const ConsultationSection = ({ patientId }: Props) => {
                   </p>
                 ) : (
                   <div className="space-y-3">
+
                     {patientConsultations.map((consultation) => (
-                      <div
-                        key={consultation.id}
-                        className="p-4 rounded-lg border bg-card flex items-center justify-between"
-                      >
-                        {/* LEFT CONTENT */}
-                        <div className="space-y-2">
-                          <Badge variant="outline">
-                            {format(
-                              new Date(consultation.consultation_date),
-                              "d MMM yyyy",
-                              { locale: th },
-                            )}
-                          </Badge>
-
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              อาการหลัก:
-                            </span>{" "}
-                            <span className="text-sm">
-                              {consultation.chief_complaint}
-                            </span>
-                          </div>
-
-                          {consultation.vital_signs &&
-                            Object.keys(consultation.vital_signs).length >
-                              0 && (
-                              <div className="flex flex-wrap gap-2">
-                                {consultation.vital_signs.blood_pressure && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    BP:{" "}
-                                    {String(
-                                      consultation.vital_signs.blood_pressure,
-                                    )}
-                                  </Badge>
-                                )}
-                                {consultation.vital_signs.heart_rate && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    HR:{" "}
-                                    {String(
-                                      consultation.vital_signs.heart_rate,
-                                    )}
-                                  </Badge>
-                                )}
-                                {consultation.vital_signs.temperature && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    Temp:{" "}
-                                    {String(
-                                      consultation.vital_signs.temperature,
-                                    )}
-                                    °C
-                                  </Badge>
-                                )}
-                                {consultation.vital_signs.respiratory_rate && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    RR:{" "}
-                                    {String(
-                                      consultation.vital_signs.respiratory_rate,
-                                    )}
-                                  </Badge>
-                                )}
-                                {consultation.vital_signs.weight && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    น้ำหนัก:{" "}
-                                    {String(consultation.vital_signs.weight)} kg
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-
-                          {consultation.physical_exam_note && (
-                            <div>
-                              <span className="text-sm font-medium text-muted-foreground">
-                                ตรวจร่างกาย:
-                              </span>{" "}
-                              <span className="text-sm">
-                                {consultation.physical_exam_note}
-                              </span>
-                            </div>
-                          )}
-
-                          {consultation.notes && (
-                            <div>
-                              <span className="text-sm font-medium text-muted-foreground">
-                                หมายเหตุ:
-                              </span>{" "}
-                              <span className="text-sm text-muted-foreground">
-                                {consultation.notes}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* RIGHT BUTTON */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() =>
-                            handleDeleteConsultation(consultation.id)
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                     
+                        <ConsultationRow
+                          key={consultation.id}
+                          consultation={consultation}
+                          onViewImages={openViewer}
+                          onDelete={handleDeleteConsultation}
+                        />
+                      
                     ))}
+
                   </div>
                 )}
               </CardContent>
@@ -460,6 +385,15 @@ export const ConsultationSection = ({ patientId }: Props) => {
                     rows={2}
                     />
                 </div>
+                <div className="space-y-2">
+                    <Label>รูปภาพ</Label>
+                    <Input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                    />
+                </div>
                 </div>
                 <DialogFooter>
                 <Button
@@ -480,6 +414,9 @@ export const ConsultationSection = ({ patientId }: Props) => {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <Carousel images={images} isOpen={viewerOpen} onClose={closeViewer} />
+        
     </>
 
   );
