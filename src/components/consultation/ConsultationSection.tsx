@@ -14,15 +14,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { usePatientConsultations } from "../hooks/usePatientConsultations";
-import { useCreatePatientConsultation, useDeletePatientConsultation } from "../hooks/usePatientConsultations";
+import { usePatientConsultations } from "@/hooks/usePatientConsultations";
+import { useCreatePatientConsultation, useDeletePatientConsultation } from "@/hooks/usePatientConsultations";
 import { useState } from "react";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConsultationRow } from "./ConsultationRow";
-import { Carousel, fetchImages } from "./Carousel";
+import { Carousel, fetchImages } from "../Carousel";
 import { useCreateMedicalImages, useDeleteMedicalImages } from "@/hooks/useMedicalImages";
 
 interface Props {
@@ -92,12 +92,13 @@ export const ConsultationSection = ({ patientId }: Props) => {
 
         if (selectedFiles.length > 0) {
             await createMedicalImages.mutateAsync({
-            entityType: "consultation",
-            entityId: consultation.id,
-            files: selectedFiles,
-            createdBy: user?.id,
-        });
-      }
+                patientId: patientId,
+                entityType: "consultation",
+                entityId: consultation.id,
+                files: selectedFiles,
+                createdBy: user?.id,
+            });
+        }
 
         // Reset form and close dialog
         setNewConsultation(getDefaultConsultation());
@@ -108,7 +109,7 @@ export const ConsultationSection = ({ patientId }: Props) => {
     const handleDeleteConsultation = async (consultationId: string) => {
         if (!patientId) return;
         
-        await deleteMedicalImages.mutateAsync({entityType: "consultation", entityId: consultationId });
+        await deleteMedicalImages.mutateAsync({patientId: patientId, entityType: "consultation", entityId: consultationId });
         await deleteConsultation.mutateAsync({ id: consultationId, patientId });
     };
 
@@ -116,7 +117,7 @@ export const ConsultationSection = ({ patientId }: Props) => {
     const [images, setImages] = useState<string[]>([]);
 
     const openViewer = async (consultationId: string) => {
-        const consultationImages = await fetchImages("consultation", consultationId);
+        const consultationImages = await fetchImages(patientId, "consultation", consultationId);
         
         setImages(consultationImages);
         setViewerOpen(true);

@@ -1,41 +1,26 @@
-import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import {
-  ArrowLeft,
-  Stethoscope,
-  Pill,
-  FileText,
-  Download,
-} from "lucide-react";
+import { ArrowLeft, Stethoscope, Pill, FileText, Download } from "lucide-react";
 
-import {
-  usePatientDiagnoses,
-} from "@/hooks/usePatientDiagnoses";
+import { usePatientDiagnoses } from "@/hooks/usePatientDiagnoses";
 
-import {
-  usePatientConsultations,
-} from "@/hooks/usePatientConsultations";
+import { usePatientConsultations } from "@/hooks/usePatientConsultations";
 
-import {
-  usePatientTreatmentPlans,
-} from "@/hooks/usePatientTreatmentPlans";
+import { usePatientTreatmentPlans } from "@/hooks/usePatientTreatmentPlans";
 
 import { HeartPulse, Scissors } from "lucide-react";
 import { exportPatientPdf } from "@/utils/exportPatientPdf";
 import { PatientInfoCard } from "@/components/PatientInfoCard";
-import { ConsultationSection } from "@/components/ConsultationSection";
-import { DiagnosisSection } from "@/components/DiagnosisSection";
+import { ConsultationSection } from "@/components/consultation/ConsultationSection";
+import { DiagnosisSection } from "@/components/diagnosis/DiagnosisSection";
 import { TreatmentSection } from "@/components/TreatmentSection";
-import { ProcedureSection } from "@/components/ProcedureSection";
+import { ProcedureSection } from "@/components/procedure/ProcedureSection";
 import { PrescriptionSection } from "@/components/PrescriptionSection";
 import { usePrescriptions } from "@/hooks/usePrescriptions";
 
@@ -57,7 +42,6 @@ const PatientDetail = () => {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
 
-
   const { data: patient, isLoading } = useQuery({
     queryKey: ["patient-detail", patientId],
     queryFn: async () => {
@@ -74,17 +58,20 @@ const PatientDetail = () => {
   });
 
   // Fetch prescriptions directly by patient_id
-  const { data: patientPrescriptions = []} = usePrescriptions(patientId || "");
+  const { data: patientPrescriptions = [] } = usePrescriptions(patientId || "");
 
   // Fetch patient diagnoses from new standalone table
   const { data: patientDiagnoses = [] } = usePatientDiagnoses(patientId || "");
 
   // Fetch patient consultations
-  const { data: patientConsultations = []} = usePatientConsultations(patientId || "");
+  const { data: patientConsultations = [] } = usePatientConsultations(
+    patientId || "",
+  );
 
   // Fetch patient treatment plans (new table)
-  const { data: patientTreatmentPlans = [] } = usePatientTreatmentPlans(patientId || "");
-
+  const { data: patientTreatmentPlans = [] } = usePatientTreatmentPlans(
+    patientId || "",
+  );
 
   if (isLoading) {
     return (
@@ -184,10 +171,7 @@ const PatientDetail = () => {
 
           {/* Medication History */}
           <PrescriptionSection patientId={patientId} />
-
         </Tabs>
-
-        
       </div>
     </DashboardLayout>
   );

@@ -8,18 +8,18 @@ interface Props {
 }
 
 
-export const fetchImages = async (entityType: string, entityId: string) => {
-  const folderPath = `${entityType}/${entityId}`;
+export const fetchImages = async (patientId: string, entityType: string, entityId: string) => {
 
-  const { data, error } = await supabase.storage
-    .from("medical-images")
-    .list(folderPath);
-    
-  if (error) throw error;
-  if (!data) return [];
+    const folderPath = `${patientId}/${entityType}/${entityId}`;
+
+    const { data, error } = await supabase.storage
+        .from("medical-images")
+        .list(folderPath);
+
+    if (error) throw error;
+    if (!data) return [];
 
     const filePaths = data.map((file) => `${folderPath}/${file.name}`);
-
 
     const { data: signed, error: signedError } = await supabase.storage
     .from("medical-images")

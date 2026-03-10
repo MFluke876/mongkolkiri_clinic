@@ -1,9 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 
 
 export interface CreateMedicalImageInput {
+  patientId: string;
   entityType: string;
   entityId: string;
   files: File[];
@@ -11,6 +11,7 @@ export interface CreateMedicalImageInput {
 }
 
 export interface DeleteMedicalImagesInput {
+  patientId: string;
   entityType: string;
   entityId: string;
 }
@@ -19,10 +20,10 @@ export const useCreateMedicalImages = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ entityType, entityId, files }: CreateMedicalImageInput) => {
+    mutationFn: async ({ patientId, entityType, entityId, files }: CreateMedicalImageInput) => {
       await Promise.all(
         files.map(async (file) => {
-          const filePath = `${entityType}/${entityId}/${crypto.randomUUID()}-${file.name}`;
+          const filePath = `${patientId}/${entityType}/${entityId}/${crypto.randomUUID()}-${file.name}`;
 
           const { error } = await supabase.storage
             .from("medical-images")
@@ -45,8 +46,8 @@ export const useDeleteMedicalImages = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ entityType, entityId }: DeleteMedicalImagesInput) => {
-      const folderPath = `${entityType}/${entityId}`;
+    mutationFn: async ({ patientId,entityType, entityId }: DeleteMedicalImagesInput) => {
+      const folderPath = `${patientId}/${entityType}/${entityId}`;
 
       const { data, error } = await supabase.storage
         .from("medical-images")

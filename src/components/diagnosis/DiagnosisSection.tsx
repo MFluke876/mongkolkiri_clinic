@@ -1,4 +1,4 @@
-import { TabsContent } from "./ui/tabs"
+import { TabsContent } from "@/components/ui/tabs"
 import { format } from "date-fns";
 import { Plus  } from "lucide-react";
 
@@ -14,9 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 
 import {
@@ -25,18 +25,16 @@ import {
   useDeletePatientDiagnosis,
 } from "@/hooks/usePatientDiagnoses";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { useCreateMedicalImages, useDeleteMedicalImages } from "@/hooks/useMedicalImages";
-import { Carousel, fetchImages } from "./Carousel";
+import { Carousel, fetchImages } from "../Carousel";
 import { DiagnosisRow } from "./DiagnosisRow";
 
 
 interface Props {
   patientId: string;
 }
-
-
 
 const getDefaultDiagnosis = () => ({
     diagnosis_date: format(new Date(), "yyyy-MM-dd"),
@@ -80,12 +78,13 @@ export const DiagnosisSection = ({ patientId }: Props) => {
 
         if (selectedFiles.length > 0) {
             await createMedicalImages.mutateAsync({
-            entityType: "diagnosis",
-            entityId: diagnosis.id,
-            files: selectedFiles,
-            createdBy: user?.id,
-        });
-  }
+                patientId: patientId,
+                entityType: "diagnosis",
+                entityId: diagnosis.id,
+                files: selectedFiles,
+                createdBy: user?.id,
+            });
+        }
 
         // Reset form and close dialog
         setNewDiagnosis(getDefaultDiagnosis());
@@ -96,7 +95,7 @@ export const DiagnosisSection = ({ patientId }: Props) => {
     const handleDeleteDiagnosis = async (diagnosisId: string) => {
         if (!patientId) return;
 
-        await deleteMedicalImages.mutateAsync({entityType: "diagnosis", entityId: diagnosisId });
+        await deleteMedicalImages.mutateAsync({patientId: patientId, entityType: "diagnosis", entityId: diagnosisId });
         await deleteDiagnosis.mutateAsync({ id: diagnosisId, patientId });
     };
 
@@ -104,7 +103,7 @@ export const DiagnosisSection = ({ patientId }: Props) => {
     const [images, setImages] = useState<string[]>([]);
 
     const openViewer = async (diagnosisId: string) => {
-        const diagnosisImages = await fetchImages("diagnosis", diagnosisId);
+        const diagnosisImages = await fetchImages(patientId, "diagnosis", diagnosisId);
         
         setImages(diagnosisImages);
         setViewerOpen(true);
