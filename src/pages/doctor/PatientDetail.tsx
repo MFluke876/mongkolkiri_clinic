@@ -53,21 +53,6 @@ interface PatientInfo {
   created_at: string;
 }
 
-interface PrescriptionRecord {
-  id: string;
-  prescription_date: string | null;
-  quantity: number;
-  usage_instruction: string | null;
-  medicine: {
-    name_thai: string;
-    name_english: string | null;
-  } | null;
-}
-
-
-
-
-
 const PatientDetail = () => {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
@@ -92,7 +77,7 @@ const PatientDetail = () => {
   const { data: patientPrescriptions = []} = usePrescriptions(patientId || "");
 
   // Fetch patient diagnoses from new standalone table
-  const { data: patientDiagnoses = [] } =usePatientDiagnoses(patientId || "");
+  const { data: patientDiagnoses = [] } = usePatientDiagnoses(patientId || "");
 
   // Fetch patient consultations
   const { data: patientConsultations = []} = usePatientConsultations(patientId || "");

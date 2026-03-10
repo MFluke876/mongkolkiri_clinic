@@ -13,13 +13,11 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { useAuth } from "@/contexts/AuthContext";
 
 import {
   useProcedureOrders,
@@ -28,12 +26,15 @@ import {
 } from "@/hooks/useProcedureOrders";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { useCreateMedicalImages, useDeleteMedicalImages } from "@/hooks/useMedicalImages";
+import { ProcedureRow } from "./ProcedureRow";
+import { Carousel, fetchImages } from "./Carousel";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 interface Props {
   patientId: string;
 }
-
 
 const getDefaultProcedure = () => ({
     procedure_date: format(new Date(), "yyyy-MM-dd"),
@@ -53,25 +54,57 @@ export const ProcedureSection = ({ patientId }: Props) => {
     const createProcedure = useCreateProcedureOrder();
     const deleteProcedure = useDeleteProcedureOrder();
 
+    const createMedicalImages = useCreateMedicalImages();
+    const deleteMedicalImages = useDeleteMedicalImages();
+
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
     const handleAddProcedure = async () => {
         if (!patientId || !newProcedure.procedure_name.trim()) return;
 
-        await createProcedure.mutateAsync({
-        patient_id: patientId,
-        procedure_date: newProcedure.procedure_date,
-        procedure_name: newProcedure.procedure_name.trim(),
-        body_part: newProcedure.body_part.trim() || undefined,
-        notes: newProcedure.notes.trim() || undefined,
-        status: newProcedure.status,
+        const procedure = await createProcedure.mutateAsync({
+            patient_id: patientId,
+            procedure_date: newProcedure.procedure_date,
+            procedure_name: newProcedure.procedure_name.trim(),
+            body_part: newProcedure.body_part.trim() || undefined,
+            notes: newProcedure.notes.trim() || undefined,
+            status: newProcedure.status,
+            has_images: selectedFiles.length > 0,
         });
+
+        if (selectedFiles.length > 0) {
+            await createMedicalImages.mutateAsync({
+            entityType: "procedure",
+            entityId: procedure.id,
+            files: selectedFiles,
+            createdBy: user?.id,
+            });
+        }
 
         setNewProcedure(getDefaultProcedure());
         setProcedureDialogOpen(false);
+        setSelectedFiles([]);
     };
 
     const handleDeleteProcedure = async (procedureId: string) => {
         if (!patientId) return;
+
+        await deleteMedicalImages.mutateAsync({entityType: "procedure", entityId: procedureId });
         await deleteProcedure.mutateAsync({ id: procedureId, patientId });
+    };
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [images, setImages] = useState<string[]>([]);
+
+    const openViewer = async (procedureId: string) => {
+        const procedureImages = await fetchImages("procedure", procedureId);
+        
+        setImages(procedureImages);
+        setViewerOpen(true);
+    };
+
+    const closeViewer = () => {
+        setViewerOpen(false);
     };
 
     return (
@@ -103,62 +136,16 @@ export const ProcedureSection = ({ patientId }: Props) => {
                         </p>
                     ) : (
                         <div className="space-y-3">
-                        {procedureOrders.map((proc) => (
-                            <div
-                            key={proc.id}
-                            className="p-3 rounded-lg border bg-card flex items-center justify-between"
-                            >
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                <span className="font-medium">
-                                    {proc.procedure_name}
-                                </span>
-                                <Badge
-                                    variant={
-                                    proc.status === "completed"
-                                        ? "default"
-                                        : proc.status === "cancelled"
-                                        ? "destructive"
-                                        : "secondary"
-                                    }
-                                >
-                                    {proc.status === "completed"
-                                    ? "เสร็จสิ้น"
-                                    : proc.status === "cancelled"
-                                        ? "ยกเลิก"
-                                        : "รอดำเนินการ"}
-                                </Badge>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                {proc.procedure_date && (
-                                    <span>
-                                    {format(
-                                        new Date(proc.procedure_date),
-                                        "d MMM yyyy",
-                                        { locale: th },
-                                    )}
-                                    </span>
-                                )}
-                                {proc.body_part && (
-                                    <span>บริเวณ: {proc.body_part}</span>
-                                )}
-                                </div>
-                                {proc.notes && (
-                                <p className="text-sm text-muted-foreground">
-                                    หมายเหตุ: {proc.notes}
-                                </p>
-                                )}
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => handleDeleteProcedure(proc.id)}
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                            </div>
-                        ))}
+
+                            {procedureOrders.map((proc) => (
+                                <ProcedureRow 
+                                    key={proc.id}
+                                    proc={proc}
+                                    onViewImages={openViewer}
+                                    onDelete={handleDeleteProcedure}
+                                />
+                            ))}
+
                         </div>
                     )}
                     </CardContent>
@@ -249,6 +236,16 @@ export const ProcedureSection = ({ patientId }: Props) => {
                             rows={3}
                         />
                         </div>
+
+                        <div className="space-y-2">
+                            <Label>รูปภาพ</Label>
+                            <Input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                            />
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button
@@ -268,7 +265,10 @@ export const ProcedureSection = ({ patientId }: Props) => {
                         </Button>
                     </DialogFooter>
                     </DialogContent>
-    </Dialog>
+            </Dialog>
+
+            <Carousel images={images} isOpen={viewerOpen} onClose={closeViewer} />
+            
         </>
     );
 };
